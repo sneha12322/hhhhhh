@@ -1,0 +1,11 @@
+{
+  "name": "live-fyi-functions",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npm install"
+  },
+  "dependencies": {
+    "jose": "^5.2.2",
+    "@libsql/client": "^0.17.2"
+  }
+}

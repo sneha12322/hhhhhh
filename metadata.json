@@ -1,0 +1,5 @@
+{
+  "name": "tr.ee",
+  "description": "URL shortener with QR generator, traffic analytics, and channel tracking.",
+  "requestFramePermissions": []
+}

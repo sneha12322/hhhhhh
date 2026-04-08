@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: live-fyi
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      HOST: 0.0.0.0
+      TRUST_PROXY: "false"
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
+      DB_PATH: /app/database/live.db
+    volumes:
+      - ./database:/app/database
+      - /app/node_modules
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - live-fyi-network
+
+  # Optional: Add PostgreSQL for production-grade database
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: live-fyi-db
+  #   environment:
+  #     POSTGRES_DB: live_fyi
+  #     POSTGRES_USER: live_fyi_user
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_in_production}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   networks:
+  #     - live-fyi-network
+  #   restart: unless-stopped
+
+networks:
+  live-fyi-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

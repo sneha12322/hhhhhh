@@ -1,0 +1,10 @@
+{
+  "build": {
+    "command": "npm run build",
+    "cwd": "."
+  },
+  "pages_build_output_dir": "frontend/dist",
+  "functions": {
+    "directory": "api"
+  }
+}

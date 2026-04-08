@@ -1,0 +1,3 @@
+# Routing is handled by Cloudflare Pages Functions via _routes.json
+# No catch-all redirect needed - the function serves index.html for SPA routes
+# and handles short URL redirects via the database
