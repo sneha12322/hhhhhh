@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { randomBytes, createHash } from "crypto";
 import * as cheerio from "cheerio";
 import { UAParser } from "ua-parser-js";
@@ -43,6 +44,7 @@ const TRUST_PROXY = process.env.TRUST_PROXY !== "false";
 
 const app = express();
 app.set('trust proxy', 1);
+app.use(cors());
 app.use(express.json());
 
 // Initialize database schema
