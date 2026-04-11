@@ -8,7 +8,7 @@
     "build": "vite build frontend",
     "build:cloudflare": "npm run build",
     "preview": "vite preview frontend",
-    "clean": "rm -rf frontend/dist functions",
+    "clean": "rimraf frontend/dist",
     "lint": "tsc --noEmit -p frontend/tsconfig.json",
     "start": "node dist/api/index.js",
     "cf:deploy": "npm run build:cloudflare && wrangler pages deploy frontend/dist --compatibility-date 2024-01-01"

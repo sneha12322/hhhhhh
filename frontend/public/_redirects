@@ -1,5 +1,4 @@
-# Proxy all API requests to Railway
-/api/*  https://back10-nunu.up.railway.app/api/:splat  200
+# API Requests are handled by functions/api/[[path]].js to support POST methods
 
 # Explicit Frontend Routes (Ensures Cloudflare serves the SPA)
 /login /index.html 200
