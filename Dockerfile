@@ -13,7 +13,7 @@ RUN npm ci --legacy-peer-deps
 
 # Copy project files and build
 COPY . .
-RUN npm run build && ls -la dist/ && ls -la frontend/dist/
+RUN npm run build 2>&1 || (echo "Build failed, checking structure:" && ls -la && echo "=== dist ===" && ls -la dist/ 2>&1 || true && echo "=== frontend/dist ===" && ls -la frontend/dist/ 2>&1 || true && exit 1)
 
 FROM node:20-alpine
 
