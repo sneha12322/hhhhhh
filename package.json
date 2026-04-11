@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx --watch backend/index.ts",
     "build": "vite build frontend",
-    "build:cloudflare": "npm run build && mkdir -p functions && cp -r lib functions/",
+    "build:cloudflare": "npm run build",
     "preview": "vite preview frontend",
     "clean": "rm -rf frontend/dist functions",
     "lint": "tsc --noEmit -p frontend/tsconfig.json",
@@ -23,6 +23,7 @@
     "clsx": "^2.1.1",
     "d3-interpolate": "^3.0.1",
     "d3-scale": "^4.0.2",
+    "dotenv": "^17.4.1",
     "express": "^4.21.2",
     "express-rate-limit": "^8.3.1",
     "jose": "^5.2.2",

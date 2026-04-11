@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router';
+import LogoHorizontal from '../assets/logo-horizontal.png';
 
 function isValidEmail(email: string) {
   return /^([\w-.]+)@([\w-]+\.)+([\w-]{2,})$/.test(email);
@@ -74,8 +75,11 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F6F6] flex items-center justify-center p-4">
+    <div className="min-h-[calc(100vh-140px)] w-full flex items-center justify-center -mt-6 md:-mt-12">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
+        <div className="flex justify-center mb-8">
+          <img src={LogoHorizontal} alt="live.fyi" className="h-32 w-auto" />
+        </div>
         <h1 className="text-3xl font-black mb-4">{mode === 'signup' ? 'Sign up' : 'Login'}</h1>
         <p className="text-sm text-gray-500 mb-6">Enter your email to get one-time code.</p>
 

@@ -1,7 +1,8 @@
 import { ReactNode, useState } from 'react';
 import { motion } from 'motion/react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { Zap, User, Search, Plus } from 'lucide-react';
+import { User, Search, Plus } from 'lucide-react';
+import LogoHorizontal from '../assets/logo-horizontal.png';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [url, setUrl] = useState('');
@@ -60,11 +61,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Top Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-50 px-6 py-4">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-8">
-          <Link to="/dashboard" className="flex items-center gap-2 text-2xl font-black tracking-tighter">
-            <div className="bg-[#1E2330] text-white p-1.5 rounded-lg flex items-center justify-center">
-              <Zap size={24} />
-            </div>
-            live.fyi
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <img src={LogoHorizontal} alt="live.fyi" className="h-28 w-auto" />
           </Link>
           
           {/* Global Shorten Bar */}

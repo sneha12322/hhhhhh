@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router';
-import { Zap, Link as LinkIcon, Loader2, Copy, CheckCircle2 } from 'lucide-react';
+import { Link as LinkIcon, Loader2, Copy, CheckCircle2 } from 'lucide-react';
+import LogoHorizontal from '../assets/logo-horizontal.png';
 
 interface ShortenedResult {
   id: string;
@@ -75,12 +76,7 @@ export default function Landing() {
     <div className="min-h-screen bg-[#F3F3F1] text-[#1E2330] font-sans selection:bg-[#D2E823] selection:text-[#1E2330]">
       {/* Navbar */}
       <nav className="flex items-center justify-between p-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2 text-2xl font-black tracking-tighter">
-          <div className="bg-[#1E2330] text-white p-1.5 rounded-lg">
-            <Zap size={24} />
-          </div>
-          live.fyi
-        </div>
+          <img src={LogoHorizontal} alt="live.fyi" className="h-28 w-auto" />
         <Link 
           to="/dashboard" 
           className="flex items-center gap-2 bg-[#E9EAE8] hover:bg-[#DFE0DE] px-5 py-2.5 rounded-full font-semibold transition-colors"
@@ -204,11 +200,8 @@ export default function Landing() {
       <footer className="bg-[#1E2330] text-white py-20 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter mb-6">
-              <div className="bg-white text-[#1E2330] p-1.5 rounded-lg">
-                <Zap size={24} />
-              </div>
-              live.fyi
+            <div className="flex items-center gap-2 mb-6">
+              <img src={LogoHorizontal} alt="live.fyi" className="h-20 w-auto brightness-0 invert" />
             </div>
             <p className="text-gray-400 max-w-sm mb-8 text-sm leading-relaxed">
               The fastest way to share and track your links. built for the modern web.
