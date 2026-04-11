@@ -4,13 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx --watch backend/index.ts",
+    "dev": "tsx --watch server.dev.ts",
     "build": "vite build frontend",
     "build:cloudflare": "npm run build",
     "preview": "vite preview frontend",
     "clean": "rm -rf frontend/dist functions",
     "lint": "tsc --noEmit -p frontend/tsconfig.json",
-    "start": "node backend/index.ts",
+    "start": "node dist/api/index.js",
     "cf:deploy": "npm run build:cloudflare && wrangler pages deploy frontend/dist --compatibility-date 2024-01-01"
   },
   "dependencies": {
