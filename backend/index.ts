@@ -8,8 +8,24 @@ import { UAParser } from 'ua-parser-js';
 import geoip from 'geoip-lite';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 
 dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_SECRET";
+let mailTransporter: nodemailer.Transporter | null = null;
+if (process.env.SMTP_HOST) {
+  mailTransporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === "true",
+    auth: {
+      user: process.env.SMTP_USER || "",
+      pass: process.env.SMTP_PASS || "",
+    },
+  });
+}
 
 // ============================================
 // Security Utilities
@@ -73,6 +89,27 @@ function extractClientIp(req: express.Request): string {
   
   return ip;
 }
+
+function isValidEmail(email: string): boolean {
+  const normalized = email?.trim().toLowerCase();
+  return /^([\w-.]+)@([\w-]+\.)+([\w-]{2,})$/.test(normalized);
+}
+
+const authMiddleware = (req: any, res: any, next: any) => {
+  const authHeader = (req.headers.authorization || "").toString();
+  if (!authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  
+  const token = authHeader.split(" ")[1];
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as any;
+    req.user = payload;
+    next();
+  } catch (err: any) {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+};
 
 /**
  * Validate tag input to prevent injection
@@ -147,7 +184,26 @@ db.exec(`
     FOREIGN KEY(link_id) REFERENCES links(id) ON DELETE CASCADE,
     UNIQUE(link_id, tag)
   );
+
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS otp_codes (
+    id TEXT PRIMARY KEY,
+    email TEXT NOT NULL,
+    code TEXT NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
+
+// Migration for user_id column
+try {
+  db.exec(`ALTER TABLE links ADD COLUMN user_id TEXT`);
+} catch (e) {}
 
 // Migration for tag column if it doesn't exist
 try {
@@ -316,13 +372,134 @@ async function startServer() {
     }
   });
 
-  app.get('/api/links', (req, res) => {
-    const links = db.prepare('SELECT * FROM links ORDER BY created_at DESC').all() as any[];
+  app.post("/api/auth/request-otp", async (req: any, res: any) => {
+    try {
+      const email = (req.body.email || "").toString().trim().toLowerCase();
+      if (!email || !isValidEmail(email)) {
+        return res.status(400).json({ error: "Invalid email" });
+      }
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+      const existingUser = db.prepare("SELECT id FROM users WHERE email = ?").get(email) as any;
+      const userId = existingUser?.id || randomBytes(8).toString("hex");
+
+      if (!existingUser) {
+        db.prepare("INSERT INTO users (id, email) VALUES (?, ?)").run(userId, email);
+      }
+
+      db.prepare("INSERT INTO otp_codes (id, email, code, expires_at) VALUES (?, ?, ?, ?)").run(randomBytes(8).toString("hex"), email, code, expiresAt);
+
+      const subject = "Your live.fyi OTP code";
+      const text = `Your one-time login code is: ${code}. It expires in 15 minutes.`;
+
+      if (mailTransporter) {
+        await mailTransporter.sendMail({
+          from: process.env.SMTP_FROM || "noreply@live.fyi",
+          to: email,
+          subject,
+          text,
+        });
+      } else {
+        console.log(`[OTP] ${email}: ${code}`);
+      }
+
+      return res.json({ success: true, message: "OTP sent to email" });
+    } catch (error: any) {
+      console.error("POST /api/auth/request-otp error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/auth/verify-otp", async (req: any, res: any) => {
+    try {
+      const email = (req.body.email || "").toString().trim().toLowerCase();
+      const code = (req.body.code || "").toString().trim();
+
+      if (!email || !code || !isValidEmail(email)) {
+        return res.status(400).json({ error: "Invalid payload" });
+      }
+
+      const otpRecord = db.prepare("SELECT id, expires_at FROM otp_codes WHERE email = ? AND code = ? ORDER BY created_at DESC LIMIT 1").get(email, code) as any;
+
+      if (!otpRecord) {
+        return res.status(400).json({ error: "Invalid code" });
+      }
+
+      if (new Date(otpRecord.expires_at).getTime() < Date.now()) {
+        return res.status(400).json({ error: "OTP expired" });
+      }
+
+      db.prepare("DELETE FROM otp_codes WHERE id = ?").run(otpRecord.id);
+
+      const user = db.prepare("SELECT id FROM users WHERE email = ?").get(email) as any;
+      if (!user) {
+        return res.status(400).json({ error: "No user found" });
+      }
+
+      const token = jwt.sign({ userId: user.id, email }, JWT_SECRET, { expiresIn: "30d" });
+      return res.json({ success: true, token, email });
+    } catch (error: any) {
+      console.error("POST /api/auth/verify-otp error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/auth/me", authMiddleware, async (req: any, res: any) => {
+    try {
+      const user = db.prepare("SELECT id, email FROM users WHERE id = ?").get(req.user.userId) as any;
+      if (!user) return res.status(404).json({ error: "User not found" });
+      res.json({ user });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get('/api/links', authMiddleware, (req: any, res: any) => {
+    const userId = req.user.userId;
+    const links = db.prepare('SELECT * FROM links WHERE user_id = ? ORDER BY created_at DESC').all(userId) as any[];
     const linksWithTags = links.map(link => {
       const tags = db.prepare('SELECT tag FROM link_tags WHERE link_id = ?').all(link.id) as { tag: string }[];
       return { ...link, tags: tags.map(t => t.tag) };
     });
     res.json(linksWithTags);
+  });
+
+  app.post('/api/links', (req: any, res: any) => {
+    try {
+      let userId: string | null = null;
+      const authHeader = (req.headers.authorization || "").toString();
+      if (authHeader.startsWith("Bearer ")) {
+        try {
+          const token = authHeader.split(" ")[1];
+          const payload = jwt.verify(token, JWT_SECRET) as any;
+          userId = payload.userId;
+        } catch (err) {}
+      }
+
+      const { original_url, slug: slugInput, title } = req.body;
+      if (!original_url) return res.status(400).json({ error: 'URL required' });
+      
+      // SECURITY FIX: Validate URL format and protocol
+      if (!isValidUrl(original_url)) {
+        return res.status(400).json({ error: 'Invalid URL. Only http:// and https:// are allowed.' });
+      }
+
+      const id = randomBytes(8).toString('hex');
+      const slug = slugInput || randomBytes(3).toString('hex');
+      
+      db.prepare('INSERT INTO links (id, user_id, original_url, slug, title) VALUES (?, ?, ?, ?, ?)').run(id, userId, original_url, slug, title || null);
+      // Create Direct channel
+      db.prepare('INSERT INTO channels (id, link_id, name, short_url) VALUES (?, ?, ?, ?)').run(randomBytes(8).toString('hex'), id, 'Direct', slug);
+      // Create QR channel
+      const qrUrl = `${slug}-qr`;
+      db.prepare('INSERT INTO channels (id, link_id, name, short_url) VALUES (?, ?, ?, ?)').run(randomBytes(8).toString('hex'), id, 'QR', qrUrl);
+      
+      res.json({ id, original_url, slug, title });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.post('/api/links/:id/tags', (req, res) => {
