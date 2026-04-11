@@ -48,7 +48,7 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize database schema
-await initializeSchema();
+await initializeSchema(db);
 
 function isValidUrl(urlString: string): boolean {
   try {
