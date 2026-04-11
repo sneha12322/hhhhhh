@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx --watch server.dev.ts",
-    "build": "vite build frontend",
+    "build": "vite build frontend && tsc -p tsconfig.json",
     "build:cloudflare": "npm run build",
     "preview": "vite preview frontend",
     "clean": "rimraf frontend/dist",

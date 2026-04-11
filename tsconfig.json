@@ -8,7 +8,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["frontend/src/*"]
-    }
+    },
+    "outDir": "dist"
   },
-  "include": ["backend/**/*.ts", "frontend/src/**/*.ts", "frontend/src/**/*.tsx"]
+  "include": ["api/**/*.ts"]
 }
