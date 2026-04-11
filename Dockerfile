@@ -13,7 +13,7 @@ RUN npm ci --legacy-peer-deps
 
 # Copy project files and build
 COPY . .
-RUN npm run build
+RUN npm run build && ls -la dist/ && ls -la frontend/dist/
 
 FROM node:20-alpine
 
