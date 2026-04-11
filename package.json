@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "tsx --watch server.dev.ts",
-    "build": "vite build frontend && tsc -p tsconfig.json",
+    "build": "vite build frontend",
     "build:cloudflare": "npm run build",
     "preview": "vite preview frontend",
     "clean": "rimraf frontend/dist",
     "lint": "tsc --noEmit -p frontend/tsconfig.json",
-    "start": "node dist/api/index.js",
+    "start": "tsx api/index.ts",
     "cf:deploy": "npm run build:cloudflare && wrangler pages deploy frontend/dist --compatibility-date 2024-01-01"
   },
   "dependencies": {
@@ -42,6 +42,7 @@
     "recharts": "^3.8.0",
     "tailwind-merge": "^3.5.0",
     "topojson-client": "^3.1.0",
+    "tsx": "^4.21.0",
     "ua-parser-js": "^2.0.9",
     "vite": "^6.2.0"
   },
@@ -54,7 +55,7 @@
     "@types/ua-parser-js": "^0.7.39",
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.1.14",
-    "tsx": "^4.21.0",
+
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

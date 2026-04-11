@@ -6,4 +6,4 @@
 /links/* /index.html 200
 
 # Proxy unknown paths (short link slugs) to Railway
-/*  https://back10-nunu.up.railway.app/:splat  200
+/*  https://hhhhhh-production-8b24.up.railway.app/:splat  200

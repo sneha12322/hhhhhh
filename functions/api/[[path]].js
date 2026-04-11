@@ -4,7 +4,7 @@ export async function onRequest(context) {
   const url = new URL(context.request.url);
   
   // The destination backend on Railway
-  const backendUrl = "https://back10-nunu.up.railway.app";
+  const backendUrl = "https://hhhhhh-production-8b24.up.railway.app";
   
   // Create a new URL that points to the backend
   const targetUrl = new URL(url.pathname + url.search, backendUrl);
