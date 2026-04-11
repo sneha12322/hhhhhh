@@ -9,7 +9,8 @@ RUN apk add --no-cache dumb-init
 COPY package*.json ./
 
 # Install dependencies (production only)
-RUN npm ci --omit=dev
+# Use legacy peer deps because react-simple-maps@3.0.0 only supports React 18 and below
+RUN npm ci --omit=dev --legacy-peer-deps
 
 # Copy application files
 COPY . .
