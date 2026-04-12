@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router';
 import LogoHorizontal from '../assets/logo-horizontal.png';
+import { api } from '../lib/api';
 
 function isValidEmail(email: string) {
   return /^([\w-.]+)@([\w-]+\.)+([\w-]{2,})$/.test(email);
@@ -18,8 +19,6 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const apiBase = '/api/auth';
-
   const requestOtp = async () => {
     if (!isValidEmail(email)) {
       setError('Please enter a valid email');
@@ -29,7 +28,7 @@ export default function Auth() {
     setError('');
     setMessage('');
     try {
-      const res = await fetch(`${apiBase}/request-otp`, {
+      const res = await fetch(api('/api/auth/request-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -54,7 +53,7 @@ export default function Auth() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${apiBase}/verify-otp`, {
+      const res = await fetch(api('/api/auth/verify-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code: otp }),

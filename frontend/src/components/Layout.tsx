@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { User, Search, Plus } from 'lucide-react';
 import LogoHorizontal from '../assets/logo-horizontal.png';
+import { api } from '../lib/api';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [url, setUrl] = useState('');
@@ -26,7 +27,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     
     try {
       console.log("[Shorten] Sending POST /api/links with Authorization header");
-      const res = await fetch('/api/links', {
+      const res = await fetch(api('/api/links'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

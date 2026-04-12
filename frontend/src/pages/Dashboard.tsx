@@ -4,6 +4,7 @@ import { useNavigate, useLocation, Link } from 'react-router';
 import { Copy, Trash2, Search, QrCode, CheckCircle2, MoreVertical, Tag, Download } from 'lucide-react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import Icon_B from '../assets/Icon_B.png';
+import { api } from '../lib/api';
 
 interface LinkData {
   id: string;
@@ -124,7 +125,7 @@ export default function Dashboard() {
 
   const fetchLinks = async () => {
     const token = localStorage.getItem('token');
-    const res = await fetch('/api/links', {
+    const res = await fetch(api('/api/links'), {
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

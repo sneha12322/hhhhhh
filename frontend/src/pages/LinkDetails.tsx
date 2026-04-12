@@ -6,6 +6,7 @@ import { ArrowLeft, Copy, Download, Trash2, Info, Loader2, Search, CheckCircle2,
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
 import Icon_B from '../assets/Icon_B.png';
+import { api } from '../lib/api';
 
 interface LinkData {
   id: string;
@@ -1046,7 +1047,7 @@ function SEOAnalyzer({ url }: { url: string }) {
   const analyze = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/seo-analyze', {
+      const res = await fetch(api('/api/seo-analyze'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })

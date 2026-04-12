@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router';
 import { Link as LinkIcon, Loader2, Copy, CheckCircle2 } from 'lucide-react';
 import LogoHorizontal from '../assets/logo-horizontal.png';
+import { api } from '../lib/api';
 
 interface ShortenedResult {
   id: string;
@@ -37,7 +38,7 @@ export default function Landing() {
     try {
       // Authenticated users go to dashboard flow
       if (token) {
-        const res = await fetch('/api/links', {
+        const res = await fetch(api('/api/links'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ original_url: url }),
@@ -50,7 +51,7 @@ export default function Landing() {
       }
 
       // Guest: create link and show result inline (no auth required)
-      const res = await fetch('/api/links', {
+      const res = await fetch(api('/api/links'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ original_url: url }),
