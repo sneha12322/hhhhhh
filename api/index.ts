@@ -349,12 +349,17 @@ app.post("/api/auth/request-otp", async (req: any, res: any) => {
     const text = `Your one-time login code is: ${code}. It expires in 15 minutes.`;
 
     if (mailTransporter) {
-      await mailTransporter.sendMail({
-        from: process.env.SMTP_FROM || "noreply@live.fyi",
-        to: email,
-        subject,
-        text,
-      });
+      try {
+        await mailTransporter.sendMail({
+          from: process.env.SMTP_FROM || "noreply@live.fyi",
+          to: email,
+          subject,
+          text,
+        });
+      } catch (mailError) {
+        console.error("[OTP] Email send failed, falling back to console:", mailError);
+        console.log(`[OTP] ${email}: ${code}`);
+      }
     } else {
       console.log(`[OTP] ${email}: ${code}`);
     }
