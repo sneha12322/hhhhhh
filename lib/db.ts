@@ -5,7 +5,8 @@ export function createDatabase(env: any) {
   const tursoToken = env.TURSO_AUTH_TOKEN;
 
   if (!tursoUrl || !tursoToken) {
-    throw new Error("Missing TURSO_CONNECTION_URL or TURSO_AUTH_TOKEN environment variables");
+    console.warn("⚠️  TURSO_CONNECTION_URL or TURSO_AUTH_TOKEN not set — database disabled");
+    return null;
   }
 
   return createClient({
@@ -16,6 +17,10 @@ export function createDatabase(env: any) {
 
 // Initialize database schema
 export async function initializeSchema(dbInstance: any) {
+  if (!dbInstance) {
+    console.warn("⚠️  Skipping schema init — no database configured");
+    return;
+  }
   try {
     const result = await dbInstance.execute("SELECT name FROM sqlite_master WHERE type='table'");
     const existingTables = new Set((result.rows as any[]).map(r => r.name));
@@ -33,7 +38,6 @@ export async function initializeSchema(dbInstance: any) {
         )
       `);
     } else {
-      // Add user_id column to existing links table if it doesn't exist
       try {
         await dbInstance.execute(`ALTER TABLE links ADD COLUMN user_id TEXT`);
       } catch (err) {
@@ -107,7 +111,6 @@ export async function initializeSchema(dbInstance: any) {
 
     console.log("Database schema initialized successfully");
   } catch (error: any) {
-    // Silently fail - tables might already exist
     if (!error.message?.includes("already exists")) {
       console.log("Database ready");
     }
@@ -116,6 +119,19 @@ export async function initializeSchema(dbInstance: any) {
 
 // Database wrapper for easier usage
 export function createDatabaseWrapper(dbInstance: any) {
+  const noDb = () => { throw new Error("Database not configured — set TURSO_CONNECTION_URL and TURSO_AUTH_TOKEN env vars in Railway"); };
+
+  if (!dbInstance) {
+    return {
+      prepare: (_sql: string) => ({
+        run: async (..._params: any[]) => noDb(),
+        get: async (..._params: any[]) => noDb(),
+        all: async (..._params: any[]) => noDb(),
+      }),
+      execute: async (_sql: string, _params: any[] = []) => noDb(),
+    };
+  }
+
   return {
     prepare: (sql: string) => ({
       run: async (...params: any[]) => {
@@ -157,3 +173,4 @@ export function createDatabaseWrapper(dbInstance: any) {
     },
   };
 }
+

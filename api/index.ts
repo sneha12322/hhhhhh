@@ -1083,3 +1083,9 @@ app.get("*", (req: any, res: any) => {
 
 // Export app for Vercel serverless
 export default app;
+
+// Start the server (Railway / local production)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`live.fyi API running on port ${PORT}`);
+});

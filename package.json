@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "tsx --watch server.dev.ts",
-    "build": "vite build frontend",
+    "build:frontend": "vite build frontend",
+    "build:backend": "tsc",
+    "build": "npm run build:frontend && npm run build:backend",
     "build:cloudflare": "npm run build",
     "preview": "vite preview frontend",
     "clean": "rimraf frontend/dist",
     "lint": "tsc --noEmit -p frontend/tsconfig.json",
-    "start": "tsx api/index.ts",
+    "start": "node dist/api/index.js",
     "cf:deploy": "npm run build:cloudflare && wrangler pages deploy frontend/dist --compatibility-date 2024-01-01"
   },
   "dependencies": {
