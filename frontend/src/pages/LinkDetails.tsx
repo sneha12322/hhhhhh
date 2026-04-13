@@ -432,12 +432,12 @@ export default function LinkDetails() {
                 <QRCodeSVG 
                   value={`${window.location.origin}/${link.slug}`} 
                   size={64} 
-                  bgColor="transparent" 
-                  fgColor="#ffffff" 
+                  bgColor="#ffffff" 
+                  fgColor="#1E2330" 
                   imageSettings={{
                     src: Icon_B,
-                    height: 16,
-                    width: 16,
+                    height: 20,
+                    width: 20,
                     excavate: true,
                   }}
                 />
@@ -932,12 +932,12 @@ export default function LinkDetails() {
                   id={`large-qr-${selectedQR.slug}`}
                   value={`${window.location.origin}/${selectedQR.slug}`} 
                   size={240} 
-                  bgColor="transparent" 
-                  fgColor="#ffffff" 
+                  bgColor="#ffffff" 
+                  fgColor="#1E2330" 
                   imageSettings={{
                     src: Icon_B,
-                    height: 50,
-                    width: 50,
+                    height: 60,
+                    width: 60,
                     excavate: true,
                   }}
                 />

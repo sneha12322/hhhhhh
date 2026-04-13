@@ -362,13 +362,13 @@ export default function Dashboard() {
                     id={`qr-${link.slug}`}
                     value={`${window.location.origin}/${link.channels?.find((c: any) => c.name === 'QR')?.short_url || `${link.slug}-qr`}`} 
                     size={48} 
-                    bgColor="transparent" 
-                    fgColor="#ffffff" 
+                    bgColor="#ffffff" 
+                    fgColor="#1E2330" 
                     imageSettings={{
                       src: Icon_B,
-                      height: 12,
-                      width: 12,
-                      excavate: false,
+                      height: 14,
+                      width: 14,
+                      excavate: true,
                     }}
                   />
                 </div>
@@ -453,13 +453,13 @@ export default function Dashboard() {
                   id={`large-qr-${selectedQR.slug}`}
                   value={`${window.location.origin}/${selectedQR.slug}`} 
                   size={240} 
-                  bgColor="transparent" 
-                  fgColor="#ffffff" 
+                  bgColor="#ffffff" 
+                  fgColor="#1E2330" 
                   imageSettings={{
                     src: Icon_B,
-                    height: 50,
-                    width: 50,
-                    excavate: false,
+                    height: 60,
+                    width: 60,
+                    excavate: true,
                   }}
                 />
               </div>
