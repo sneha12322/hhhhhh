@@ -8,11 +8,6 @@ export async function onRequest(context) {
     return context.next();
   }
 
-  // 2. SPA Route Guard: Don't proxy known frontend routes (though _redirects should catch them first)
-  const spaRoutes = ["/dashboard", "/login", "/auth-callback", "/links", "/auth", "/api"];
-  if (path === "/" || spaRoutes.some(p => path.startsWith(p))) {
-    return context.next();
-  }
 
   // The destination backend on Railway
   const backendUrl = "https://hhhhhh-production-8b24.up.railway.app";
