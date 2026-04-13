@@ -10,7 +10,7 @@ export async function onRequest(context) {
 
   // 2. SPA Route Guard: Don't proxy known frontend routes (though _redirects should catch them first)
   const spaRoutes = ["/dashboard", "/login", "/auth-callback", "/links", "/auth", "/api"];
-  if (spaRoutes.some(p => path.startsWith(p))) {
+  if (path === "/" || spaRoutes.some(p => path.startsWith(p))) {
     return context.next();
   }
 

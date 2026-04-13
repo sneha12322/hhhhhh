@@ -4,3 +4,4 @@
 /auth-callback  /index.html  200
 /links/:id      /index.html  200
 /               /index.html  200
+/*              /index.html  200
