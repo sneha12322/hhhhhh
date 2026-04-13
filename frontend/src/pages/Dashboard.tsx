@@ -93,7 +93,7 @@ export default function Dashboard() {
       const ctx = finalCanvas.getContext("2d");
       
       if (ctx) {
-        ctx.fillStyle = "#1E2330"; // Match visual background
+        ctx.fillStyle = "#ffffff"; // Use white background for clarity
         // Fill background
         ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
         // Draw the cleanly rendered QR canvas

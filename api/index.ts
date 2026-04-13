@@ -20,6 +20,7 @@ initializeSchema(db).catch(console.error);
 const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_SECRET";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const RESEND_FROM = process.env.RESEND_FROM || "noreply@live.fyi";
+const APP_URL = (process.env.APP_URL || "").replace(/\/$/, "");
 
 // Google OAuth config
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
@@ -479,17 +480,17 @@ app.get("/api/auth/google/callback", async (req: any, res: any) => {
     
     if (error) {
       console.error("[GOOGLE] OAuth error:", error);
-      return res.redirect(`/auth?error=${encodeURIComponent(error)}`);
+      return res.redirect(`${APP_URL}/auth?error=${encodeURIComponent(error as string)}`);
     }
     
     if (!code) {
       console.error("[GOOGLE] No authorization code received");
-      return res.redirect("/auth?error=no_code");
+      return res.redirect(`${APP_URL}/auth?error=no_code`);
     }
     
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
       console.error("[GOOGLE] Google OAuth credentials not configured");
-      return res.redirect("/auth?error=not_configured");
+      return res.redirect(`${APP_URL}/auth?error=not_configured`);
     }
     
     console.log("[GOOGLE] Exchanging auth code for token...");
@@ -510,7 +511,7 @@ app.get("/api/auth/google/callback", async (req: any, res: any) => {
     if (!tokenResponse.ok) {
       const error = await tokenResponse.text();
       console.error("[GOOGLE] Token exchange failed:", error);
-      return res.redirect(`/auth?error=token_exchange_failed`);
+      return res.redirect(`${APP_URL}/auth?error=token_exchange_failed`);
     }
     
     const { id_token } = await tokenResponse.json();
@@ -521,7 +522,7 @@ app.get("/api/auth/google/callback", async (req: any, res: any) => {
     const parts = id_token.split(".");
     if (parts.length !== 3) {
       console.error("[GOOGLE] Invalid ID token format");
-      return res.redirect("/auth?error=invalid_token");
+      return res.redirect(`${APP_URL}/auth?error=invalid_token`);
     }
     
     const payload = JSON.parse(Buffer.from(parts[1], "base64").toString());
@@ -531,7 +532,7 @@ app.get("/api/auth/google/callback", async (req: any, res: any) => {
     
     if (!email || !isValidEmail(email)) {
       console.error("[GOOGLE] Invalid or missing email in token");
-      return res.redirect("/auth?error=invalid_email");
+      return res.redirect(`${APP_URL}/auth?error=invalid_email`);
     }
     
     // Upsert user
@@ -552,12 +553,11 @@ app.get("/api/auth/google/callback", async (req: any, res: any) => {
     console.log("[GOOGLE] App JWT created successfully");
     
     // Redirect to dashboard with token and email as URL params
-    // Frontend will read these and store in localStorage
-    const redirectUrl = `/auth-callback?token=${encodeURIComponent(appToken)}&email=${encodeURIComponent(email)}`;
+    const redirectUrl = `${APP_URL}/auth-callback?token=${encodeURIComponent(appToken)}&email=${encodeURIComponent(email)}`;
     res.redirect(redirectUrl);
   } catch (error: any) {
     console.error("GET /api/auth/google/callback error:", error);
-    res.redirect(`/auth?error=${encodeURIComponent(error.message)}`);
+    res.redirect(`${APP_URL}/auth?error=${encodeURIComponent(error.message)}`);
   }
 });
 

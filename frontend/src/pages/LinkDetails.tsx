@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { ArrowLeft, Copy, Download, Trash2, Info, Loader2, Search, CheckCircle2, Palette, Globe, ChevronDown, MoreVertical, Tag, Zap, QrCode } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
@@ -200,27 +200,24 @@ export default function LinkDetails() {
   };
 
   const downloadLargeQR = (slug: string) => {
-    const svg = document.getElementById(`large-qr-${slug}`);
-    if (svg) {
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const img = new Image();
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        if (ctx) {
-          ctx.fillStyle = "#1E2330";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
-        }
-        const pngFile = canvas.toDataURL("image/png");
-        const downloadLink = document.createElement("a");
-        downloadLink.download = `qr-${slug}.png`;
-        downloadLink.href = pngFile;
-        downloadLink.click();
-      };
-      img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    const canvas = document.getElementById(`large-qr-${slug}`) as HTMLCanvasElement;
+    if (canvas) {
+      const finalCanvas = document.createElement("canvas");
+      finalCanvas.width = canvas.width;
+      finalCanvas.height = canvas.height;
+      const ctx = finalCanvas.getContext("2d");
+      
+      if (ctx) {
+        ctx.fillStyle = "#ffffff"; // Use white background for download
+        ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+        ctx.drawImage(canvas, 0, 0);
+      }
+      
+      const pngFile = finalCanvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `qr-${slug}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
     }
   };
 
@@ -928,7 +925,7 @@ export default function LinkDetails() {
               </div>
 
               <div className="bg-[#1E2330] p-6 rounded-[2rem] shadow-inner">
-                <QRCodeSVG 
+                <QRCodeCanvas 
                   id={`large-qr-${selectedQR.slug}`}
                   value={`${window.location.origin}/${selectedQR.slug}`} 
                   size={240} 
