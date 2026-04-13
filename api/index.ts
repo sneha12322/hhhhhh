@@ -556,10 +556,16 @@ app.get("/api/auth/google/callback", async (req: any, res: any) => {
     
     // Redirect to dashboard with token and email as URL params
     console.log("[GOOGLE] APP_URL at redirect time:", JSON.stringify(APP_URL));
-    if (!APP_URL) {
-      console.error("[GOOGLE] CRITICAL: APP_URL is empty! Set APP_URL=https://live.fyi in Railway dashboard!");
+    
+    // Origin Enforcement: If APP_URL is missing, try to infer it from the request or default to live.fyi
+    let baseDomain = APP_URL;
+    if (!baseDomain) {
+      const host = req.headers.host || "";
+      baseDomain = host.includes("localhost") ? "http://localhost:3000" : "https://live.fyi";
+      console.warn("[GOOGLE] APP_URL was empty. Inferred baseDomain:", baseDomain);
     }
-    const redirectUrl = `${APP_URL}/auth-callback?token=${encodeURIComponent(appToken)}&email=${encodeURIComponent(email)}`;
+    
+    const redirectUrl = `${baseDomain}/auth-callback?token=${encodeURIComponent(appToken)}&email=${encodeURIComponent(email)}`;
     console.log("[GOOGLE] Final redirectUrl:", redirectUrl);
     res.redirect(redirectUrl);
   } catch (error: any) {
