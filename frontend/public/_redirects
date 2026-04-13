@@ -4,7 +4,3 @@
 /auth-callback  /index.html  200
 /links/:id      /index.html  200
 /               /index.html  200
-
-# 2. Short Links - Catch-all for shortlink redirection
-# This 302 forwards unknown slugs to Railway where they are resolved and redirected to target URL.
-/*              https://hhhhhh-production-8b24.up.railway.app/:splat  302
