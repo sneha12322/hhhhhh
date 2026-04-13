@@ -7,8 +7,6 @@ import geoip from "geoip-lite";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
-import dns from "dns";
-import nodemailer from "nodemailer";
 import { createDatabase, initializeSchema, createDatabaseWrapper } from "../lib/db.js";
 
 dotenv.config();
@@ -20,105 +18,52 @@ const database = createDatabaseWrapper(db);
 initializeSchema(db).catch(console.error);
 
 const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_SECRET";
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
-const SENDGRID_FROM = process.env.SENDGRID_FROM || process.env.SMTP_FROM || "noreply@live.fyi";
-const useSendGrid = Boolean(SENDGRID_API_KEY);
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+const RESEND_FROM = process.env.RESEND_FROM || "noreply@live.fyi";
 
 // Google OAuth config
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/auth/google/callback";
 
-let mailTransporter: nodemailer.Transporter | null = null;
-if (process.env.SMTP_HOST) {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = Number(process.env.SMTP_PORT) || 587;
-  const smtpSecure = process.env.SMTP_SECURE === "true" || smtpPort === 465;
-  const smtpForceIPv4 = process.env.SMTP_FORCE_IPV4 !== "false";
-
-  mailTransporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpSecure,
-    auth: {
-      user: process.env.SMTP_USER || "",
-      pass: process.env.SMTP_PASS || "",
-    },
-    family: 4,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-    lookup: (hostname: string, options: any, callback: any) =>
-      dns.lookup(hostname, { family: 4 }, callback),
-  });
-  console.log("[OTP] SMTP transporter configured", {
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpSecure,
-    lookupFamily: 4,
-    smtpUser: process.env.SMTP_USER ? "configured" : "missing",
-  });
-} else {
-  console.log("[OTP] SMTP transporter not configured, only SendGrid is available", { useSendGrid });
-}
+console.log("[INIT] Email service: Resend", { apiKeyConfigured: Boolean(RESEND_API_KEY), from: RESEND_FROM });
 
 async function sendEmail({ from, to, subject, text }: { from: string; to: string; subject: string; text: string }) {
-  console.log("[OTP] sendEmail called", {
-    to,
-    from,
-    subject,
-    useSendGrid,
-    smtpAvailable: Boolean(mailTransporter),
-  });
-  if (useSendGrid) {
-    console.log("[OTP] Attempting SendGrid send", { to, from });
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    try {
-      const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${SENDGRID_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: to }] }],
-          from: { email: from },
-          subject,
-          content: [{ type: "text/plain", value: text }],
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      const bodyText = await response.text();
-      console.log("[OTP] SendGrid response", { status: response.status, bodyText: bodyText.slice(0, 200) });
-
-      if (!response.ok) {
-        throw new Error(`SendGrid failed ${response.status}: ${bodyText}`);
-      }
-
-      return { provider: "sendgrid", status: response.status };
-    } catch (sendGridError) {
-      clearTimeout(timeoutId);
-      console.error("[OTP] SendGrid send failed, falling back to SMTP if available:", sendGridError);
-    }
+  console.log("[OTP] sendEmail called via Resend", { to, from, subject });
+  
+  if (!RESEND_API_KEY) {
+    console.error("[OTP] Resend API key not configured");
+    return null;
   }
 
-  if (mailTransporter) {
-    console.log("[OTP] Attempting SMTP send", { to, from });
-    try {
-      const info = await mailTransporter.sendMail({ from, to, subject, text });
-      console.log("[OTP] SMTP send result", { messageId: info.messageId, response: (info as any).response });
-      return info;
-    } catch (smtpError) {
-      console.error("[OTP] SMTP send failed", smtpError);
-      throw smtpError;
-    }
-  }
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to,
+        subject,
+        html: text.replace(/\n/g, "<br/>"),
+      }),
+    });
 
-  return null;
+    const result = await response.json();
+    
+    if (!response.ok) {
+      console.error("[OTP] Resend send failed", { status: response.status, error: result });
+      throw new Error(`Resend failed ${response.status}: ${JSON.stringify(result)}`);
+    }
+
+    console.log("[OTP] Email sent successfully via Resend", { to, messageId: result.id });
+    return { provider: "resend", status: 200, messageId: result.id };
+  } catch (error: any) {
+    console.error("[OTP] Email send failed", error);
+    throw error;
+  }
 }
 
 import fs from "fs";
@@ -439,22 +384,21 @@ app.post("/api/auth/request-otp", async (req: any, res: any) => {
 
     try {
       sentInfo = await sendEmail({
-        from: SENDGRID_FROM,
+        from: RESEND_FROM,
         to: email,
         subject,
         text,
       });
     } catch (mailError) {
-      console.error("[OTP] Email send failed, falling back to console:", mailError);
+      console.error("[OTP] Email send failed:", mailError);
+      sentInfo = null;
     }
 
     if (sentInfo) {
       console.log("[OTP] Email sent successfully", {
         to: email,
-        provider: sentInfo.provider || "smtp",
-        status: sentInfo.status || "sent",
+        provider: sentInfo.provider || "resend",
         messageId: sentInfo.messageId,
-        response: sentInfo.response,
       });
     } else {
       console.log(`[OTP] ${email}: ${code}`);
