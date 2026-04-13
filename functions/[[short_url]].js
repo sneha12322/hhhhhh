@@ -2,11 +2,23 @@ export async function onRequest(context) {
   const url = new URL(context.request.url);
   const path = url.pathname;
 
+  // 1. Static Asset Guard: If this is a JS, CSS, or image file, let Cloudflare serve it normally
+  const staticExtensions = /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json|html|map)$/i;
+  if (staticExtensions.test(path)) {
+    return context.next();
+  }
+
+  // 2. SPA Route Guard: Don't proxy known frontend routes (though _redirects should catch them first)
+  const spaRoutes = ["/dashboard", "/login", "/auth-callback", "/links", "/auth"];
+  if (spaRoutes.some(p => path.startsWith(p))) {
+    return context.next();
+  }
+
   // The destination backend on Railway
   const backendUrl = "https://hhhhhh-production-8b24.up.railway.app";
 
   // LOGGING (Visible in Cloudflare dashboard)
-  console.log(`[PROXY-CATCHALL] Handling path: ${path}`);
+  console.log(`[PROXY-CATCHALL] Processing: ${path}`);
 
   // Create a new URL that points to the backend
   const targetUrl = new URL(url.pathname + url.search, backendUrl);
