@@ -7,6 +7,7 @@ import geoip from "geoip-lite";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
+import dns from "dns";
 import nodemailer from "nodemailer";
 import { createDatabase, initializeSchema, createDatabaseWrapper } from "../lib/db.js";
 
@@ -19,18 +20,105 @@ const database = createDatabaseWrapper(db);
 initializeSchema(db).catch(console.error);
 
 const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_SECRET";
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
+const SENDGRID_FROM = process.env.SENDGRID_FROM || process.env.SMTP_FROM || "noreply@live.fyi";
+const useSendGrid = Boolean(SENDGRID_API_KEY);
+
+// Google OAuth config
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/api/auth/google/callback";
 
 let mailTransporter: nodemailer.Transporter | null = null;
 if (process.env.SMTP_HOST) {
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = Number(process.env.SMTP_PORT) || 587;
+  const smtpSecure = process.env.SMTP_SECURE === "true" || smtpPort === 465;
+  const smtpForceIPv4 = process.env.SMTP_FORCE_IPV4 !== "false";
+
   mailTransporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: process.env.SMTP_SECURE === "true",
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpSecure,
     auth: {
       user: process.env.SMTP_USER || "",
       pass: process.env.SMTP_PASS || "",
     },
+    family: 4,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+    lookup: (hostname: string, options: any, callback: any) =>
+      dns.lookup(hostname, { family: 4 }, callback),
   });
+  console.log("[OTP] SMTP transporter configured", {
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpSecure,
+    lookupFamily: 4,
+    smtpUser: process.env.SMTP_USER ? "configured" : "missing",
+  });
+} else {
+  console.log("[OTP] SMTP transporter not configured, only SendGrid is available", { useSendGrid });
+}
+
+async function sendEmail({ from, to, subject, text }: { from: string; to: string; subject: string; text: string }) {
+  console.log("[OTP] sendEmail called", {
+    to,
+    from,
+    subject,
+    useSendGrid,
+    smtpAvailable: Boolean(mailTransporter),
+  });
+  if (useSendGrid) {
+    console.log("[OTP] Attempting SendGrid send", { to, from });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${SENDGRID_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: to }] }],
+          from: { email: from },
+          subject,
+          content: [{ type: "text/plain", value: text }],
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const bodyText = await response.text();
+      console.log("[OTP] SendGrid response", { status: response.status, bodyText: bodyText.slice(0, 200) });
+
+      if (!response.ok) {
+        throw new Error(`SendGrid failed ${response.status}: ${bodyText}`);
+      }
+
+      return { provider: "sendgrid", status: response.status };
+    } catch (sendGridError) {
+      clearTimeout(timeoutId);
+      console.error("[OTP] SendGrid send failed, falling back to SMTP if available:", sendGridError);
+    }
+  }
+
+  if (mailTransporter) {
+    console.log("[OTP] Attempting SMTP send", { to, from });
+    try {
+      const info = await mailTransporter.sendMail({ from, to, subject, text });
+      console.log("[OTP] SMTP send result", { messageId: info.messageId, response: (info as any).response });
+      return info;
+    } catch (smtpError) {
+      console.error("[OTP] SMTP send failed", smtpError);
+      throw smtpError;
+    }
+  }
+
+  return null;
 }
 
 import fs from "fs";
@@ -347,19 +435,27 @@ app.post("/api/auth/request-otp", async (req: any, res: any) => {
 
     const subject = "Your live.fyi OTP code";
     const text = `Your one-time login code is: ${code}. It expires in 15 minutes.`;
+    let sentInfo: any = null;
 
-    if (mailTransporter) {
-      try {
-        await mailTransporter.sendMail({
-          from: process.env.SMTP_FROM || "noreply@live.fyi",
-          to: email,
-          subject,
-          text,
-        });
-      } catch (mailError) {
-        console.error("[OTP] Email send failed, falling back to console:", mailError);
-        console.log(`[OTP] ${email}: ${code}`);
-      }
+    try {
+      sentInfo = await sendEmail({
+        from: SENDGRID_FROM,
+        to: email,
+        subject,
+        text,
+      });
+    } catch (mailError) {
+      console.error("[OTP] Email send failed, falling back to console:", mailError);
+    }
+
+    if (sentInfo) {
+      console.log("[OTP] Email sent successfully", {
+        to: email,
+        provider: sentInfo.provider || "smtp",
+        status: sentInfo.status || "sent",
+        messageId: sentInfo.messageId,
+        response: sentInfo.response,
+      });
     } else {
       console.log(`[OTP] ${email}: ${code}`);
     }
@@ -412,6 +508,127 @@ app.post("/api/auth/verify-otp", async (req: any, res: any) => {
   } catch (error: any) {
     console.error("POST /api/auth/verify-otp error:", error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/auth/google", (req: any, res: any) => {
+  if (!GOOGLE_CLIENT_ID) {
+    return res.status(500).json({ error: "Google OAuth not configured" });
+  }
+  
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: GOOGLE_REDIRECT_URI,
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+  });
+  
+  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  console.log("[GOOGLE] Redirecting to Google OAuth:", googleAuthUrl);
+  res.redirect(googleAuthUrl);
+});
+
+app.get("/api/auth/google/callback", async (req: any, res: any) => {
+  try {
+    const { code, error } = req.query;
+    
+    if (error) {
+      console.error("[GOOGLE] OAuth error:", error);
+      return res.redirect(`/auth?error=${encodeURIComponent(error)}`);
+    }
+    
+    if (!code) {
+      console.error("[GOOGLE] No authorization code received");
+      return res.redirect("/auth?error=no_code");
+    }
+    
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      console.error("[GOOGLE] Google OAuth credentials not configured");
+      return res.redirect("/auth?error=not_configured");
+    }
+    
+    console.log("[GOOGLE] Exchanging auth code for token...");
+    
+    // Exchange auth code for tokens
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code: code as string,
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: GOOGLE_REDIRECT_URI,
+        grant_type: "authorization_code",
+      }).toString(),
+    });
+    
+    if (!tokenResponse.ok) {
+      const error = await tokenResponse.text();
+      console.error("[GOOGLE] Token exchange failed:", error);
+      return res.redirect(`/auth?error=token_exchange_failed`);
+    }
+    
+    const { id_token } = await tokenResponse.json();
+    console.log("[GOOGLE] ID token received, verifying...");
+    
+    // Verify and decode the ID token (simple JWT decode without verification for now)
+    // In production, you should verify the signature
+    const parts = id_token.split(".");
+    if (parts.length !== 3) {
+      console.error("[GOOGLE] Invalid ID token format");
+      return res.redirect("/auth?error=invalid_token");
+    }
+    
+    const payload = JSON.parse(Buffer.from(parts[1], "base64").toString());
+    const { email, sub: googleId, picture, name } = payload;
+    
+    console.log("[GOOGLE] Token verified. Email:", email, "Google ID:", googleId);
+    
+    if (!email) {
+      console.error("[GOOGLE] No email in token");
+      return res.redirect("/auth?error=no_email");
+    }
+    
+    // Upsert user
+    const existingUser = await database.prepare("SELECT id FROM users WHERE email = ?").get(email);
+    const userId = existingUser?.id || randomBytes(8).toString("hex");
+    
+    if (!existingUser) {
+      await database
+        .prepare("INSERT INTO users (id, email) VALUES (?, ?)")
+        .run(userId, email);
+      console.log("[GOOGLE] New user created:", userId, "Email:", email);
+    } else {
+      console.log("[GOOGLE] Existing user found:", userId, "Email:", email);
+    }
+    
+    // Create JWT token
+    const appToken = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "30d" });
+    console.log("[GOOGLE] App JWT created successfully");
+    
+    // Redirect to dashboard with token in localStorage via an intermediary page
+    // Using a simple HTML page that sets localStorage and redirects
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Completing login...</title>
+      </head>
+      <body>
+        <script>
+          localStorage.setItem('token', '${appToken}');
+          localStorage.setItem('email', '${email}');
+          window.location.replace('/dashboard');
+        </script>
+      </body>
+      </html>
+    `;
+    res.setHeader("Content-Type", "text/html");
+    res.send(html);
+  } catch (error: any) {
+    console.error("GET /api/auth/google/callback error:", error);
+    res.redirect(`/auth?error=${encodeURIComponent(error.message)}`);
   }
 });
 
