@@ -8,7 +8,6 @@
     "/auth*",
     "/auth-callback*",
     "/links*",
-    "/api/*",
     "/assets/*", 
     "/favicon.ico", 
     "/robots.txt", 

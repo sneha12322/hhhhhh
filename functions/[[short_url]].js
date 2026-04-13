@@ -8,10 +8,11 @@ export async function onRequest(context) {
     return context.next();
   }
 
-  // 2. SPA Route Guard: Even if _routes.json fails, verify this isn't a known frontend route
+  // 2. SPA Route Guard: Even if _routes.json fails, verify this isn't a known frontend route.
+  // We use context.env.ASSETS.fetch("/") to serve index.html directly, bypassing any buggy 308 redirects.
   const spaPatterns = [/^\/dashboard(\/.*)?$/, /^\/login(\/.*)?$/, /^\/auth-callback(\/.*)?$/, /^\/links(\/.*)?$/, /^\/auth(\/.*)?$/, /^\/$/];
   if (spaPatterns.some(pattern => pattern.test(path))) {
-    return context.next();
+    return context.env.ASSETS.fetch(new URL("/", url.origin));
   }
 
 
