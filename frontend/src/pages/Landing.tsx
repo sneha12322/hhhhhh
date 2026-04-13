@@ -12,14 +12,16 @@ export default function Landing() {
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
 
-  // Fail-safe: Check for token/email in URL (handles case where /auth-callback path is stripped)
+  // Fail-safe: Check for token/email in URL (handles case where /auth-callback path is stripped or changed)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const email = params.get('email');
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
+    
+    const token = searchParams.get('token') || hashParams.get('token');
+    const email = searchParams.get('email') || hashParams.get('email');
     
     if (token && email) {
-      console.log("[Landing] OAuth token found at root URL, completing login fallback...");
+      console.log("[Landing] ✅ OAuth token captured via fail-safe (Root/Hash). Completing login...");
       localStorage.setItem('token', token);
       localStorage.setItem('email', email);
       // Remove tokens from URL and go to dashboard
