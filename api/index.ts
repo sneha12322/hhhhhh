@@ -469,7 +469,7 @@ app.get("/api/auth/google", (req: any, res: any) => {
   });
   
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-  console.log("[GOOGLE] Redirecting to Google OAuth:", googleAuthUrl);
+  console.log("[GOOGLE] Redirecting to Google OAuth");
   res.redirect(googleAuthUrl);
 });
 
@@ -527,11 +527,11 @@ app.get("/api/auth/google/callback", async (req: any, res: any) => {
     const payload = JSON.parse(Buffer.from(parts[1], "base64").toString());
     const { email, sub: googleId, picture, name } = payload;
     
-    console.log("[GOOGLE] Token verified. Email:", email, "Google ID:", googleId);
+    console.log("[GOOGLE] Token decoded. Email:", email);
     
-    if (!email) {
-      console.error("[GOOGLE] No email in token");
-      return res.redirect("/auth?error=no_email");
+    if (!email || !isValidEmail(email)) {
+      console.error("[GOOGLE] Invalid or missing email in token");
+      return res.redirect("/auth?error=invalid_email");
     }
     
     // Upsert user
@@ -551,25 +551,10 @@ app.get("/api/auth/google/callback", async (req: any, res: any) => {
     const appToken = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "30d" });
     console.log("[GOOGLE] App JWT created successfully");
     
-    // Redirect to dashboard with token in localStorage via an intermediary page
-    // Using a simple HTML page that sets localStorage and redirects
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Completing login...</title>
-      </head>
-      <body>
-        <script>
-          localStorage.setItem('token', '${appToken}');
-          localStorage.setItem('email', '${email}');
-          window.location.replace('/dashboard');
-        </script>
-      </body>
-      </html>
-    `;
-    res.setHeader("Content-Type", "text/html");
-    res.send(html);
+    // Redirect to dashboard with token and email as URL params
+    // Frontend will read these and store in localStorage
+    const redirectUrl = `/auth-callback?token=${encodeURIComponent(appToken)}&email=${encodeURIComponent(email)}`;
+    res.redirect(redirectUrl);
   } catch (error: any) {
     console.error("GET /api/auth/google/callback error:", error);
     res.redirect(`/auth?error=${encodeURIComponent(error.message)}`);
