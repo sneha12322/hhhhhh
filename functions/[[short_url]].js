@@ -8,6 +8,12 @@ export async function onRequest(context) {
     return context.next();
   }
 
+  // 2. SPA Route Guard: Even if _routes.json fails, verify this isn't a known frontend route
+  const spaPatterns = [/^\/dashboard(\/.*)?$/, /^\/login(\/.*)?$/, /^\/auth-callback(\/.*)?$/, /^\/links(\/.*)?$/, /^\/auth(\/.*)?$/, /^\/$/];
+  if (spaPatterns.some(pattern => pattern.test(path))) {
+    return context.next();
+  }
+
 
   // The destination backend on Railway
   const backendUrl = "https://hhhhhh-production-8b24.up.railway.app";

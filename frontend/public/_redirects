@@ -1,7 +1,11 @@
 # 1. Frontend - Specific paths for the Single Page App
 /login          /index.html  200
+/login/         /index.html  200
 /dashboard      /index.html  200
+/dashboard/     /index.html  200
 /auth-callback  /index.html  200
+/auth-callback/ /index.html  200
 /links/:id      /index.html  200
+/links/:id/     /index.html  200
 /               /index.html  200
 /*              /index.html  200
