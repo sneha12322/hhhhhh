@@ -1,9 +1,13 @@
-# API Requests are handled by functions/api/[[path]].js to support POST methods
+# 1. API & Auth Callback - Forward to Railway
+/api/*          https://hhhhhh-production-8b24.up.railway.app/api/:splat  200
 
-# Explicit Frontend Routes (Ensures Cloudflare serves the SPA)
-/login /index.html 200
-/dashboard /index.html 200
-/links/* /index.html 200
+# 2. Frontend - Specific paths for the Single Page App
+/login          /index.html  200
+/dashboard      /index.html  200
+/auth-callback  /index.html  200
+/links/*        /index.html  200
 
-# Proxy unknown paths (short link slugs) to Railway
-/*  https://hhhhhh-production-8b24.up.railway.app/:splat  200
+# 3. Everything Else (including root / and short slugs)
+# If it's the root /, Cloudflare serves index.html by default.
+# If it's a slug, it goes to Railway.
+/*              https://hhhhhh-production-8b24.up.railway.app/:splat  200

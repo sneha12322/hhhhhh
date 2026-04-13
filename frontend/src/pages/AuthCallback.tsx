@@ -6,10 +6,18 @@ export default function AuthCallback() {
   const location = useLocation();
 
   useEffect(() => {
+    console.log("[AuthCallback] Component mounted");
+    console.log("[AuthCallback] Full URL:", window.location.href);
+    console.log("[AuthCallback] location.search:", location.search);
+
     const params = new URLSearchParams(location.search);
     const token = params.get('token');
     const email = params.get('email');
     const error = params.get('error');
+
+    console.log("[AuthCallback] token present:", !!token);
+    console.log("[AuthCallback] email present:", !!email);
+    console.log("[AuthCallback] error:", error);
 
     if (error) {
       console.error("[AuthCallback] Error parameter:", error);
@@ -18,7 +26,7 @@ export default function AuthCallback() {
     }
 
     if (!token || !email) {
-      console.error("[AuthCallback] Missing token or email");
+      console.error("[AuthCallback] Missing token or email — redirecting to /auth");
       navigate('/auth?error=missing_params');
       return;
     }
@@ -26,7 +34,8 @@ export default function AuthCallback() {
     try {
       localStorage.setItem('token', token);
       localStorage.setItem('email', email);
-      console.log("[AuthCallback] Token and email stored in localStorage");
+      console.log("[AuthCallback] ✅ Token and email stored in localStorage");
+      console.log("[AuthCallback] Navigating to /dashboard...");
       navigate('/dashboard');
     } catch (err: any) {
       console.error("[AuthCallback] Failed to store in localStorage:", err);

@@ -21,6 +21,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "CHANGE_ME_SECRET";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const RESEND_FROM = process.env.RESEND_FROM || "noreply@live.fyi";
 const APP_URL = (process.env.APP_URL || "").replace(/\/$/, "");
+console.log("[BOOT] APP_URL resolved to:", JSON.stringify(APP_URL));
+console.log("[BOOT] APP_URL env raw:", JSON.stringify(process.env.APP_URL));
 
 // Google OAuth config
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
@@ -553,7 +555,12 @@ app.get("/api/auth/google/callback", async (req: any, res: any) => {
     console.log("[GOOGLE] App JWT created successfully");
     
     // Redirect to dashboard with token and email as URL params
+    console.log("[GOOGLE] APP_URL at redirect time:", JSON.stringify(APP_URL));
+    if (!APP_URL) {
+      console.error("[GOOGLE] CRITICAL: APP_URL is empty! Set APP_URL=https://live.fyi in Railway dashboard!");
+    }
     const redirectUrl = `${APP_URL}/auth-callback?token=${encodeURIComponent(appToken)}&email=${encodeURIComponent(email)}`;
+    console.log("[GOOGLE] Final redirectUrl:", redirectUrl);
     res.redirect(redirectUrl);
   } catch (error: any) {
     console.error("GET /api/auth/google/callback error:", error);
@@ -1059,7 +1066,7 @@ app.delete("/api/links/:id", async (req: any, res: any) => {
 app.get("/:short_url", redirectLimiter, async (req: any, res: any, next: any) => {
   try {
     const { short_url } = req.params;
-    if (["api", "src", "@", "node_modules"].some((p) => short_url.startsWith(p)))
+    if (["api", "src", "@", "node_modules", "dashboard", "login", "auth-callback", "links"].some((p) => short_url.startsWith(p)))
       return next();
 
     console.log(`[REDIRECT] Looking up short_url: '${short_url}'`);

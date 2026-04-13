@@ -109,7 +109,7 @@ export default function LinkDetails() {
     if (!link || !tagStr.trim()) return;
     try {
       const token = localStorage.getItem('token');
-      await fetch(`/api/links/${link.id}/tags`, {
+      await fetch(api(`/api/links/${link.id}/tags`), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ export default function LinkDetails() {
     if (!link) return;
     try {
       const token = localStorage.getItem('token');
-      await fetch(`/api/links/${link.id}/tags/${tagStr}`, {
+      await fetch(api(`/api/links/${link.id}/tags/${tagStr}`), {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -146,8 +146,8 @@ export default function LinkDetails() {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       
       const [linkRes, analyticsRes] = await Promise.all([
-        fetch(`/api/links/${id}`, { headers }),
-        fetch(`/api/links/${id}/analytics?timeframe=${timeframe}&_t=${Date.now()}`, { headers })
+        fetch(api(`/api/links/${id}`), { headers }),
+        fetch(api(`/api/links/${id}/analytics?timeframe=${timeframe}&_t=${Date.now()}`), { headers })
       ]);
       
       if (!linkRes.ok) throw new Error('Failed to fetch link details');
@@ -165,7 +165,7 @@ export default function LinkDetails() {
   const handleAddChannel = async (name: string) => {
     if (!name) return;
     const token = localStorage.getItem('token');
-    await fetch(`/api/links/${id}/channels`, {
+    await fetch(api(`/api/links/${id}/channels`), {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -185,10 +185,10 @@ export default function LinkDetails() {
     if (!confirm(`Are you sure you want to delete the channel '${channelName}'? This will also wipe its tracking history.`)) return;
     
     const token = localStorage.getItem('token');
-    await fetch(`/api/links/${id}/channels/${channelId}`, {
-      method: 'DELETE',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+      const res = await fetch(api(`/api/links/${link.id}/channels/${channelId}`), {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
     fetchData();
   };
 

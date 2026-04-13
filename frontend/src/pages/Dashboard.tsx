@@ -39,6 +39,10 @@ export default function Dashboard() {
   }, [showAddTagId]);
 
   useEffect(() => {
+    console.log("[Dashboard] Component mounted / location changed");
+    console.log("[Dashboard] Current URL:", window.location.href);
+    console.log("[Dashboard] Token in localStorage:", localStorage.getItem('token') ? `Present (${localStorage.getItem('token')!.length} chars)` : "MISSING");
+    console.log("[Dashboard] Email in localStorage:", localStorage.getItem('email') || "MISSING");
     fetchLinks();
 
     // Check for success param from landing
@@ -125,6 +129,7 @@ export default function Dashboard() {
 
   const fetchLinks = async () => {
     const token = localStorage.getItem('token');
+    console.log("[fetchLinks] Sending request to:", api('/api/links'));
     const res = await fetch(api('/api/links'), {
       headers: {
         'Content-Type': 'application/json',
@@ -132,7 +137,10 @@ export default function Dashboard() {
       },
     });
 
+    console.log("[fetchLinks] Response status:", res.status);
+
     if (res.status === 401) {
+      console.warn("[fetchLinks] Received 401 Unauthorized. Clearing token and redirecting to /login.");
       // Logout and redirect to login if token is missing/invalid
       localStorage.removeItem('token');
       localStorage.removeItem('email');

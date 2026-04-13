@@ -1,22 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router';
 import { Link as LinkIcon, Loader2, Copy, CheckCircle2 } from 'lucide-react';
 import LogoHorizontal from '../assets/logo-horizontal.png';
 import { api } from '../lib/api';
 
-interface ShortenedResult {
-  id: string;
-  slug: string;
-  original_url: string;
-}
-
 export default function Landing() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ShortenedResult | null>(null);
+  const [result, setResult] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
+
+  // Fail-safe: Check for token/email in URL (handles case where /auth-callback path is stripped)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const email = params.get('email');
+    
+    if (token && email) {
+      console.log("[Landing] OAuth token found at root URL, completing login fallback...");
+      localStorage.setItem('token', token);
+      localStorage.setItem('email', email);
+      // Remove tokens from URL and go to dashboard
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   const shortUrl = result ? `${window.location.origin}/${result.slug}` : '';
 
