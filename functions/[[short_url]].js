@@ -4,12 +4,12 @@ export async function onRequest(context) {
 
   // 1. Static Asset Guard: If this is a JS, CSS, or image file, let Cloudflare serve it normally
   const staticExtensions = /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json|html|map)$/i;
-  if (staticExtensions.test(path)) {
+  if (staticExtensions.test(path) || path.startsWith('/assets/') || path.startsWith('/public/')) {
     return context.next();
   }
 
   // 2. SPA Route Guard: Don't proxy known frontend routes (though _redirects should catch them first)
-  const spaRoutes = ["/dashboard", "/login", "/auth-callback", "/links", "/auth"];
+  const spaRoutes = ["/dashboard", "/login", "/auth-callback", "/links", "/auth", "/api"];
   if (spaRoutes.some(p => path.startsWith(p))) {
     return context.next();
   }
