@@ -285,7 +285,7 @@ const AnalyticsService = {
         .all(linkId, cutoff) as Array<{ country: string; count: number }>;
 
       const timelineQuery = timeframe === "24h"
-        ? `SELECT strftime('%Y-%m-%dT%H:00:00Z', datetime(clicks.timestamp)) as date, COUNT(*) as count FROM clicks 
+        ? `SELECT strftime('%Y-%m-%d %H', datetime(clicks.timestamp)) as date, COUNT(*) as count FROM clicks 
            JOIN channels ON clicks.channel_id = channels.id 
            WHERE channels.link_id = ? AND clicks.timestamp >= ?
            GROUP BY strftime('%Y-%m-%d %H', datetime(clicks.timestamp))
