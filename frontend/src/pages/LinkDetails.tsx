@@ -583,11 +583,18 @@ export default function LinkDetails() {
                       // Hourly points for the last 24 hours
                       for(let i = 24; i >= 0; i--) {
                         const d = new Date(now.getTime() - i * 3600000);
-                        d.setMinutes(0, 0, 0); // Round to the hour
-                        const iso = d.toISOString().replace(/\.\d+Z$/, 'Z'); // Match backend format
-                        // Try exact match or hour-only match
-                        const count = clickMap[iso] || clickMap[iso.replace(':00:00Z', ':00Z')] || 0;
-                        dates.push({ date: iso, count });
+                        // Format to match SQLite strftime('%Y-%m-%d %H') in UTC
+                        const year = d.getUTCFullYear();
+                        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+                        const day = String(d.getUTCDate()).padStart(2, '0');
+                        const hour = String(d.getUTCHours()).padStart(2, '0');
+                        const key = `${year}-${month}-${day} ${hour}`;
+                        
+                        // We store the original Date object or ISO for the formatter to use local time
+                        dates.push({ 
+                          date: d.toISOString(), 
+                          count: clickMap[key] || 0 
+                        });
                       }
                     } else {
                       // Daily points for the last X days
