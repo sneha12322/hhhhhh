@@ -140,6 +140,11 @@ export default function LinkDetails() {
     }
   };
 
+  const handleTimeframeChange = (newTf: string) => {
+    setAnalytics(null); // Clear data to show loader during transition
+    setTimeframe(newTf);
+  };
+
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -542,7 +547,7 @@ export default function LinkDetails() {
                 ].map((tf) => (
                   <button
                     key={tf.id}
-                    onClick={() => setTimeframe(tf.id)}
+                    onClick={() => handleTimeframeChange(tf.id)}
                     className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${
                       timeframe === tf.id 
                         ? 'bg-[#1A1A1A] text-white shadow-lg' 
