@@ -29,10 +29,18 @@ export async function onRequest(context) {
     // Generate new request to proxy it
     const proxyRequest = new Request(targetUrl.toString(), {
       method: context.request.method,
-      headers: context.request.headers,
+      headers: new Headers(context.request.headers),
       body: context.request.body,
       redirect: "manual" // IMPORTANT: Pass redirects (302) back to the browser to handle
     });
+
+    // Inject accurate Edge Geolocation from Cloudflare
+    const cf = context.request.cf;
+    if (cf) {
+      if (cf.city) proxyRequest.headers.set("x-client-city", cf.city);
+      if (cf.country) proxyRequest.headers.set("x-client-country", cf.country);
+      if (cf.region) proxyRequest.headers.set("x-client-region", cf.region);
+    }
 
     const response = await fetch(proxyRequest);
 

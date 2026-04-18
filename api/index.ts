@@ -285,10 +285,10 @@ const AnalyticsService = {
         .all(linkId, cutoff) as Array<{ country: string; count: number }>;
 
       const timelineQuery = timeframe === "24h"
-        ? `SELECT strftime('%Y-%m-%dT%H:00:00Z', clicks.timestamp) as date, COUNT(*) as count FROM clicks 
+        ? `SELECT strftime('%Y-%m-%dT%H:00:00Z', datetime(clicks.timestamp)) as date, COUNT(*) as count FROM clicks 
            JOIN channels ON clicks.channel_id = channels.id 
            WHERE channels.link_id = ? AND clicks.timestamp >= ?
-           GROUP BY strftime('%Y-%m-%d %H', clicks.timestamp)
+           GROUP BY strftime('%Y-%m-%d %H', datetime(clicks.timestamp))
            ORDER BY date ASC`
         : `SELECT DATE(clicks.timestamp) as date, COUNT(*) as count FROM clicks 
            JOIN channels ON clicks.channel_id = channels.id 
@@ -1120,30 +1120,34 @@ app.get("/:short_url", redirectLimiter, async (req: any, res: any, next: any) =>
         let country = "Unknown",
           city = "Unknown";
 
-        if (clientIp !== "unknown" && !isPrivateIp(clientIp)) {
-          // Use geoip-lite for country and city (fast, local, no API rate limits)
+        // 1. Try Cloudflare Edge Headers first (Most accurate)
+        const edgeCity = req.headers["x-client-city"];
+        const edgeCountry = req.headers["x-client-country"];
+        
+        if (edgeCity || edgeCountry) {
+          city = edgeCity || "Unknown";
+          country = edgeCountry || "Unknown";
+          console.log(`[GEO] Using Edge Geo: ${city}, ${country}`);
+        } else if (clientIp !== "unknown" && !isPrivateIp(clientIp)) {
+          // 2. Fallback to local geoip-lite
           const geo = geoip.lookup(clientIp);
           country = geo ? geo.country : "Unknown";
           city = geo ? (geo.city || "Unknown") : "Unknown";
           
-          // If geoip-lite didn't find a city, try ip-api.com as a fallback
           if (city === "Unknown") {
+            // 3. Last resort fallback to external API
             try {
               const controller = new AbortController();
               const timeoutId = setTimeout(() => controller.abort(), 1500);
-              
               const response = await fetch(`http://ip-api.com/json/${clientIp}?fields=city`, {
                 signal: controller.signal,
               });
               clearTimeout(timeoutId);
-              
               if (response.ok) {
                 const data = await response.json();
                 city = data.city || "Unknown";
               }
-            } catch (error) {
-              // Fallback already set to "Unknown"
-            }
+            } catch (error) {}
           }
         }
 
