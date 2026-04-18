@@ -566,23 +566,36 @@ export default function LinkDetails() {
             >
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={analytics.timeline.length ? analytics.timeline : (() => {
+                  <AreaChart data={(() => {
                     const now = new Date();
                     const dates = [];
-                    const stepMap: Record<string, number> = { '24h': 6, '7d': 2, '30d': 7, '60d': 15 };
                     const rangeMap: Record<string, number> = { '24h': 24, '7d': 7, '30d': 30, '60d': 60 };
-                    
+                    const days = rangeMap[timeframe] || 7;
+
+                    // 1. Create a map of existing click data for quick lookup
+                    const clickMap: Record<string, number> = {};
+                    analytics.timeline.forEach(p => {
+                      clickMap[p.date] = p.count;
+                    });
+
+                    // 2. Generate the full range of points
                     if (timeframe === '24h') {
-                      for(let i = 24; i >= 0; i -= 6) {
-                        dates.push({ date: new Date(now.getTime() - i * 3600000).toISOString(), count: 0 });
+                      // Hourly points for the last 24 hours
+                      for(let i = 24; i >= 0; i--) {
+                        const d = new Date(now.getTime() - i * 3600000);
+                        d.setMinutes(0, 0, 0); // Round to the hour
+                        const iso = d.toISOString().replace(/\.\d+Z$/, 'Z'); // Match backend format
+                        // Try exact match or hour-only match
+                        const count = clickMap[iso] || clickMap[iso.replace(':00:00Z', ':00Z')] || 0;
+                        dates.push({ date: iso, count });
                       }
                     } else {
-                      const days = rangeMap[timeframe] || 7;
-                      const step = stepMap[timeframe] || 2;
-                      for(let i = days; i >= 0; i -= step) {
+                      // Daily points for the last X days
+                      for(let i = days; i >= 0; i--) {
                         const d = new Date(now);
                         d.setDate(d.getDate() - i);
-                        dates.push({ date: d.toISOString(), count: 0 });
+                        const dateStr = d.toISOString().split('T')[0];
+                        dates.push({ date: dateStr, count: clickMap[dateStr] || 0 });
                       }
                     }
                     return dates;
