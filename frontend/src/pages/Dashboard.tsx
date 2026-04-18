@@ -369,13 +369,14 @@ export default function Dashboard() {
                   <QRCodeSVG 
                     id={`qr-${link.slug}`}
                     value={`${window.location.origin}/${link.channels?.find((c: any) => c.name === 'QR')?.short_url || `${link.slug}-qr`}`} 
-                    size={48} 
+                    size={128} 
                     bgColor="#ffffff" 
                     fgColor="#1E2330" 
+                    level="H"
                     imageSettings={{
                       src: Icon_B,
-                      height: 14,
-                      width: 14,
+                      height: 24,
+                      width: 24,
                       excavate: true,
                     }}
                   />
@@ -460,13 +461,14 @@ export default function Dashboard() {
                 <QRCodeCanvas 
                   id={`large-qr-${selectedQR.slug}`}
                   value={`${window.location.origin}/${selectedQR.slug}`} 
-                  size={240} 
+                  size={320} 
                   bgColor="#ffffff" 
                   fgColor="#1E2330" 
+                  level="H"
                   imageSettings={{
                     src: Icon_B,
-                    height: 60,
-                    width: 60,
+                    height: 52,
+                    width: 52,
                     excavate: true,
                   }}
                 />

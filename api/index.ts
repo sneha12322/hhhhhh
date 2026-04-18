@@ -111,6 +111,13 @@ function isPrivateIp(ip: string): boolean {
 }
 
 function extractClientIp(req: any): string {
+  // Cloudflare headers are the most reliable on CF Pages / Proxy
+  const cfIp = req.headers["cf-connecting-ip"];
+  if (cfIp) return (Array.isArray(cfIp) ? cfIp[0] : cfIp).trim();
+  
+  const trueClientIp = req.headers["true-client-ip"];
+  if (trueClientIp) return (Array.isArray(trueClientIp) ? trueClientIp[0] : trueClientIp).trim();
+
   if (TRUST_PROXY) {
     const forwarded = req.headers["x-forwarded-for"];
     if (forwarded) {
@@ -1112,29 +1119,29 @@ app.get("/:short_url", redirectLimiter, async (req: any, res: any, next: any) =>
           city = "Unknown";
 
         if (clientIp !== "unknown" && !isPrivateIp(clientIp)) {
-          // Use geoip-lite for country (fast, no API call)
+          // Use geoip-lite for country and city (fast, local, no API rate limits)
           const geo = geoip.lookup(clientIp);
           country = geo ? geo.country : "Unknown";
+          city = geo ? (geo.city || "Unknown") : "Unknown";
           
-          // Use ip-api.com just for city info (with timeout and fallback)
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5 second timeout
-            
-            const response = await fetch(`http://ip-api.com/json/${clientIp}?fields=city`, {
-              signal: controller.signal,
-            });
-            clearTimeout(timeoutId);
-            
-            if (response.ok) {
-              const data = await response.json();
-              city = data.city || "Unknown";
-            } else {
-              city = "Unknown";
+          // If geoip-lite didn't find a city, try ip-api.com as a fallback
+          if (city === "Unknown") {
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 1500);
+              
+              const response = await fetch(`http://ip-api.com/json/${clientIp}?fields=city`, {
+                signal: controller.signal,
+              });
+              clearTimeout(timeoutId);
+              
+              if (response.ok) {
+                const data = await response.json();
+                city = data.city || "Unknown";
+              }
+            } catch (error) {
+              // Fallback already set to "Unknown"
             }
-          } catch (error) {
-            // Silently fail - city remains "Unknown"
-            city = "Unknown";
           }
         }
 
@@ -1149,9 +1156,17 @@ app.get("/:short_url", redirectLimiter, async (req: any, res: any, next: any) =>
                 .digest("hex")
                 .substring(0, 16);
 
-        const deviceType = { mobile: "Phone", tablet: "Tablet", desktop: "Desktop" }[
-          parser.getDevice().type || "desktop"
+        const device = parser.getDevice();
+        let deviceType = { mobile: "Phone", tablet: "Tablet", desktop: "Desktop" }[
+          device.type || "desktop"
         ] || "Other";
+
+        // Enhanced tablet detection for modern iPads reporting as Macintosh
+        if (deviceType === "Desktop" && (rawUa.includes("iPad") || (rawUa.includes("Macintosh") && rawUa.includes("Safari") && !rawUa.includes("Chrome")))) {
+          // Check for mobile-like characteristics on "Macintosh"
+          // Often these are iPads in desktop mode.
+          deviceType = "Tablet";
+        }
 
         let cleanReferrer = "Direct";
         const rawReferrer = req.headers.referer || "";

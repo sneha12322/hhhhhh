@@ -422,19 +422,26 @@ export default function LinkDetails() {
                 {copiedId === link.id ? <CheckCircle2 size={28} /> : <Copy size={28} />}
               </button>
               <div 
-                onClick={() => setSelectedQR({ slug: link.slug, name: 'Direct' })}
+                onClick={() => {
+                  const qrChannel = link.channels?.find(c => c.name === 'QR');
+                  setSelectedQR({ 
+                    slug: qrChannel?.short_url || link.slug, 
+                    name: qrChannel ? 'QR' : 'Direct' 
+                  });
+                }}
                 className="flex-1 md:w-20 md:h-20 aspect-square bg-white/10 text-white rounded-[2rem] flex items-center justify-center border border-white/20 cursor-pointer overflow-hidden p-4 shadow-xl backdrop-blur-md hover:bg-white/20 transition-all hover:scale-105 active:scale-95"
                 title="Enlarge QR Code"
               >
                 <QRCodeSVG 
-                  value={`${window.location.origin}/${link.slug}`} 
-                  size={64} 
+                  value={`${window.location.origin}/${link.channels?.find(c => c.name === 'QR')?.short_url || link.slug}`} 
+                  size={128} 
                   bgColor="#ffffff" 
                   fgColor="#1E2330" 
+                  level="H"
                   imageSettings={{
                     src: Icon_B,
-                    height: 20,
-                    width: 20,
+                    height: 24,
+                    width: 24,
                     excavate: true,
                   }}
                 />
@@ -657,11 +664,14 @@ export default function LinkDetails() {
               <h3 className="text-xl font-bold text-center">By device</h3>
               <BehaviorCard 
                 data={(() => {
-                  const defaults = { 'Tablet': 0, 'Phone': 0, 'Desktop': 0, 'Unknown': 0 };
+                  // Show all detected devices, but ensure our main ones have a default 0 if missing
+                  const merged: Record<string, number> = { 'Phone': 0, 'Tablet': 0, 'Desktop': 0 };
                   analytics.clicksByDevice.forEach(d => {
-                    if (defaults.hasOwnProperty(d.device)) defaults[d.device] = d.count;
+                    merged[d.device] = d.count;
                   });
-                  return Object.entries(defaults).map(([device, count]) => ({ device, count }));
+                  return Object.entries(merged)
+                    .map(([device, count]) => ({ device, count }))
+                    .sort((a, b) => b.count - a.count);
                 })()} 
                 dataKey="device" 
                 columns={['Device', 'Visits']} 
@@ -672,11 +682,14 @@ export default function LinkDetails() {
               <h3 className="text-xl font-bold text-center">By marketing channel</h3>
               <BehaviorCard 
                 data={(() => {
-                  const defaults = { 'Direct': 0, 'QR': 0 };
+                  // Show all channels (Direct, QR, and any custom ones like Instagram/Facebook)
+                  const merged: Record<string, number> = { 'Direct': 0, 'QR': 0 };
                   analytics.clicksByChannel.forEach(c => {
-                    if (defaults.hasOwnProperty(c.name)) defaults[c.name] = c.count;
+                    merged[c.name] = c.count;
                   });
-                  return Object.entries(defaults).map(([name, count]) => ({ name, count }));
+                  return Object.entries(merged)
+                    .map(([name, count]) => ({ name, count }))
+                    .sort((a, b) => b.count - a.count);
                 })()} 
                 dataKey="name" 
                 columns={['Channel', 'Visits']} 
@@ -928,13 +941,14 @@ export default function LinkDetails() {
                 <QRCodeCanvas 
                   id={`large-qr-${selectedQR.slug}`}
                   value={`${window.location.origin}/${selectedQR.slug}`} 
-                  size={240} 
+                  size={320} 
                   bgColor="#ffffff" 
                   fgColor="#1E2330" 
+                  level="H" 
                   imageSettings={{
                     src: Icon_B,
-                    height: 60,
-                    width: 60,
+                    height: 52,
+                    width: 52,
                     excavate: true,
                   }}
                 />
