@@ -608,24 +608,28 @@ export default function LinkDetails() {
                       tick={{fill: '#000000', fontSize: 13, fontWeight: '700'}} 
                     />
                     <Tooltip 
-                      labelFormatter={(str) => {
-                        if (timeframe === '24h') {
-                          const d = new Date(str);
-                          if (isNaN(d.getTime())) return `Time: ${str}`;
-                          return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                        }
-                        const d = new Date(str);
-                        return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                      content={({ active, payload: activePayload }) => {
+                        if (!active || !activePayload || !activePayload.length) return null;
+                        const d = new Date(activePayload[0].payload.date);
+                        return (
+                          <div className="bg-white p-5 rounded-2xl shadow-xl border border-gray-100 flex flex-col gap-1 ring-1 ring-black/5">
+                            <p className="text-gray-400 font-black text-[10px] uppercase tracking-widest">
+                              {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </p>
+                            <p className="text-[#1E2330] font-black text-lg">
+                              {timeframe === '24h' 
+                                ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                                : 'Daily Total'}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="w-2 h-2 rounded-full bg-[#1E2330]"></span>
+                              <p className="font-black text-xl text-[#1E2330]">
+                                {activePayload[0].value} <span className="text-sm text-gray-400 uppercase">clicks</span>
+                              </p>
+                            </div>
+                          </div>
+                        );
                       }}
-                      contentStyle={{ 
-                        borderRadius: '20px', 
-                        border: 'none', 
-                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', 
-                        fontWeight: 'bold', 
-                        padding: '16px',
-                        backgroundColor: '#FFFFFF',
-                        color: '#000000'
-                      }} 
                     />
                     <Area type="monotone" dataKey="count" stroke="#000000" strokeWidth={4} fillOpacity={1} fill="url(#colorCount)" />
                   </AreaChart>
@@ -1160,7 +1164,14 @@ const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 function InteractiveMap({ data, onHover }: { data: any[], onHover: (d: any) => void }) {
   const statsMap = data.reduce((acc, curr) => {
-    acc[curr.country] = curr.count;
+    try {
+      // Convert 'IN' -> 'India' for map matching
+      const regionNames = new Intl.DisplayNames(['en'], {type: 'region'});
+      const fullName = curr.country === 'Unknown' ? 'Unknown' : regionNames.of(curr.country);
+      if (fullName) acc[fullName] = curr.count;
+    } catch (e) {
+      acc[curr.country] = curr.count;
+    }
     return acc;
   }, {} as Record<string, number>);
 

@@ -284,17 +284,19 @@ const AnalyticsService = {
         )
         .all(linkId, cutoff) as Array<{ country: string; count: number }>;
 
-      const timeline = await database
-        .prepare(
-          `
-        SELECT DATE(clicks.timestamp) as date, COUNT(*) as count FROM clicks 
-        JOIN channels ON clicks.channel_id = channels.id 
-        WHERE channels.link_id = ? AND clicks.timestamp >= ?
-        GROUP BY DATE(clicks.timestamp)
-        ORDER BY date ASC
-      `
-        )
-        .all(linkId, cutoff) as Array<{ date: string; count: number }>;
+      const timelineQuery = timeframe === "24h"
+        ? `SELECT strftime('%Y-%m-%dT%H:00:00Z', clicks.timestamp) as date, COUNT(*) as count FROM clicks 
+           JOIN channels ON clicks.channel_id = channels.id 
+           WHERE channels.link_id = ? AND clicks.timestamp >= ?
+           GROUP BY strftime('%Y-%m-%d %H', clicks.timestamp)
+           ORDER BY date ASC`
+        : `SELECT DATE(clicks.timestamp) as date, COUNT(*) as count FROM clicks 
+           JOIN channels ON clicks.channel_id = channels.id 
+           WHERE channels.link_id = ? AND clicks.timestamp >= ?
+           GROUP BY DATE(clicks.timestamp)
+           ORDER BY date ASC`;
+
+      const timeline = await database.prepare(timelineQuery).all(linkId, cutoff) as Array<{ date: string; count: number }>;
 
       return {
         totalVisits: totalVisits?.count || 0,
