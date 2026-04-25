@@ -26,6 +26,7 @@ interface AnalyticsData {
   clicksByCity: any[];
   clicksByCountry: any[];
   timeline: any[];
+  channelPerformance?: any[];
 }
 
 export default function LinkDetails() {
@@ -37,7 +38,7 @@ export default function LinkDetails() {
   const [newChannelName, setNewChannelName] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [cardColor, setCardColor] = useState('#1E2330');
+  const [cardColor, setCardColor] = useState(() => localStorage.getItem(`link_color_${id}`) || '#1E2330');
   const [timeframe, setTimeframe] = useState('30d');
   const [showMore, setShowMore] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -60,17 +61,26 @@ export default function LinkDetails() {
   }, [isEditingTag]);
 
   const themeColors = [
-    '#1E2330', // Default dark
-    '#374151', // Gray 700
-    '#111827', // Gray 900
-    '#292524', // Stone 800
-    '#1c1917', // Stone 900
+    '#1E2330', // Default Charcoal
+    '#4F46E5', // Indigo
+    '#7C3AED', // Violet
+    '#EC4899', // Pink
+    '#EF4444', // Red
+    '#F59E0B', // Amber
+    '#10B981', // Emerald
+    '#06B6D4', // Cyan
+    '#8B5CF6', // Purple
+    '#F97316', // Orange
   ];
 
   const cycleColor = () => {
     const currentIndex = themeColors.indexOf(cardColor);
     const nextIndex = (currentIndex + 1) % themeColors.length;
-    setCardColor(themeColors[nextIndex]);
+    const newColor = themeColors[nextIndex];
+    setCardColor(newColor);
+    if (id) {
+      localStorage.setItem(`link_color_${id}`, newColor);
+    }
   };
 
   useEffect(() => {
@@ -854,21 +864,23 @@ export default function LinkDetails() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {link.channels.map(channel => (
-                    <tr key={channel.id} className="hover:bg-gray-50/80 transition-colors group">
-                      <td className="p-6 pl-10 font-black text-lg text-[#1E2330]">{channel.name}</td>
-                      <td className="p-6">
-                        <a href={`/${channel.short_url}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 font-bold decoration-2 underline-offset-4 hover:underline">
-                          live.fyi/{channel.short_url}
-                        </a>
-                      </td>
-                      <td className="p-6">
-                        <div className="flex gap-6">
-                          <div className="flex flex-col"><span className="text-gray-400 text-[10px] font-black uppercase tracking-tighter">1d</span> <span className="font-black text-lg">0</span></div>
-                          <div className="flex flex-col"><span className="text-gray-400 text-[10px] font-black uppercase tracking-tighter">7d</span> <span className="font-black text-lg">0</span></div>
-                          <div className="flex flex-col"><span className="text-gray-400 text-[10px] font-black uppercase tracking-tighter">30d</span> <span className="font-black text-lg">0</span></div>
-                        </div>
-                      </td>
+                  {link.channels.map(channel => {
+                    const perf = analytics.channelPerformance?.find(p => p.channel_id === channel.id) || { clicks_1d: 0, clicks_7d: 0, clicks_30d: 0 };
+                    return (
+                      <tr key={channel.id} className="hover:bg-gray-50/80 transition-colors group">
+                        <td className="p-6 pl-10 font-black text-lg text-[#1E2330]">{channel.name}</td>
+                        <td className="p-6">
+                          <a href={`/${channel.short_url}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 font-bold decoration-2 underline-offset-4 hover:underline">
+                            live.fyi/{channel.short_url}
+                          </a>
+                        </td>
+                        <td className="p-6">
+                          <div className="flex gap-6">
+                            <div className="flex flex-col"><span className="text-gray-400 text-[10px] font-black uppercase tracking-tighter">1d</span> <span className="font-black text-lg">{perf.clicks_1d}</span></div>
+                            <div className="flex flex-col"><span className="text-gray-400 text-[10px] font-black uppercase tracking-tighter">7d</span> <span className="font-black text-lg">{perf.clicks_7d}</span></div>
+                            <div className="flex flex-col"><span className="text-gray-400 text-[10px] font-black uppercase tracking-tighter">30d</span> <span className="font-black text-lg">{perf.clicks_30d}</span></div>
+                          </div>
+                        </td>
                       <td className="p-6 pr-10">
                         <div className="flex gap-3 justify-end">
                           <button onClick={() => copyToClipboard(channel.short_url, channel.id)} className="w-12 h-12 flex items-center justify-center hover:bg-white bg-gray-100 rounded-2xl transition-all shadow-sm text-[#1E2330]" title="Copy URL">
@@ -930,10 +942,6 @@ export default function LinkDetails() {
             <p className="font-medium text-lg text-white/70 leading-relaxed mb-6 relative z-10">Channels let you track where your traffic comes from by creating unique short URLs for the same destination.</p>
             <p className="font-medium text-lg text-white/70 leading-relaxed mb-6 relative z-10">For example, if you're sharing a link on social media, in an email campaign, or in a text message, you can create a different channel URL for each. This way, you'll know exactly which source is driving traffic.</p>
             <p className="font-medium text-lg text-white/70 leading-relaxed mb-8 relative z-10">💡 <span className="text-[#D2E823]">Pro tip:</span> Every link automatically comes with a built-in "QR" channel! Generate QR codes from that channel's unique URL to properly track QR code scans.</p>
-            <div className="flex gap-4 relative z-10">
-              <button className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-full font-black transition-all backdrop-blur-md">Still don't get it</button>
-              <button className="px-8 py-4 bg-white text-[#1E2330] rounded-full font-black hover:bg-gray-100 transition-all shadow-xl">Ah, got it!</button>
-            </div>
           </div>
         </div>
       )}

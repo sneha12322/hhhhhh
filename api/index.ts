@@ -298,6 +298,18 @@ const AnalyticsService = {
 
       const timeline = await database.prepare(timelineQuery).all(linkId, cutoff) as Array<{ date: string; count: number }>;
 
+      const channelPerformance = await database.prepare(`
+        SELECT 
+          channel_id,
+          COUNT(CASE WHEN timestamp >= datetime('now', '-1 day') THEN 1 END) as clicks_1d,
+          COUNT(CASE WHEN timestamp >= datetime('now', '-7 days') THEN 1 END) as clicks_7d,
+          COUNT(CASE WHEN timestamp >= datetime('now', '-30 days') THEN 1 END) as clicks_30d
+        FROM clicks
+        JOIN channels ON clicks.channel_id = channels.id
+        WHERE channels.link_id = ?
+        GROUP BY channel_id
+      `).all(linkId) as Array<{ channel_id: string; clicks_1d: number; clicks_7d: number; clicks_30d: number }>;
+
       return {
         totalVisits: totalVisits?.count || 0,
         uniqueVisits: uniqueVisits?.count || 0,
@@ -307,6 +319,7 @@ const AnalyticsService = {
         clicksByCity: clicksByCity || [],
         clicksByCountry: clicksByCountry || [],
         timeline: timeline || [],
+        channelPerformance: channelPerformance || [],
       };
     } catch (error) {
       console.error("Analytics error:", error);

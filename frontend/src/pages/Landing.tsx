@@ -227,20 +227,20 @@ export default function Landing() {
           <div>
             <h3 className="font-bold mb-6 text-lg">Help & Info</h3>
             <ul className="space-y-4 text-gray-400 text-sm">
-              <li><a href="#" className="hover:text-white transition-colors">What does a short link do?</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">How do URL shorteners work?</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">How to get a QR code for a link</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">How to shorten a URL</a></li>
+              <li><Link to="/info/what-does-a-short-link-do" className="hover:text-white transition-colors">What does a short link do?</Link></li>
+              <li><Link to="/info/how-do-url-shorteners-work" className="hover:text-white transition-colors">How do URL shorteners work?</Link></li>
+              <li><Link to="/info/how-to-get-a-qr-code-for-a-link" className="hover:text-white transition-colors">How to get a QR code for a link</Link></li>
+              <li><Link to="/info/how-to-shorten-a-url" className="hover:text-white transition-colors">How to shorten a URL</Link></li>
             </ul>
           </div>
 
           <div>
             <h3 className="font-bold mb-6 text-lg">Company</h3>
             <ul className="space-y-4 text-gray-400 text-sm">
-              <li><a href="#" className="hover:text-white transition-colors">About</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Trust & legal</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Privacy notice</a></li>
+              <li><Link to="/info/about" className="hover:text-white transition-colors">About</Link></li>
+              <li><Link to="/info/careers" className="hover:text-white transition-colors">Careers</Link></li>
+              <li><Link to="/info/trust-legal" className="hover:text-white transition-colors">Trust & legal</Link></li>
+              <li><Link to="/info/privacy-notice" className="hover:text-white transition-colors">Privacy notice</Link></li>
             </ul>
           </div>
         </div>
