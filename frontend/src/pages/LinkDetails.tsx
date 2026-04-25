@@ -881,33 +881,35 @@ export default function LinkDetails() {
                             <div className="flex flex-col"><span className="text-gray-400 text-[10px] font-black uppercase tracking-tighter">30d</span> <span className="font-black text-lg">{perf.clicks_30d}</span></div>
                           </div>
                         </td>
-                      <td className="p-6 pr-10">
-                        <div className="flex gap-3 justify-end">
-                          <button onClick={() => copyToClipboard(channel.short_url, channel.id)} className="w-12 h-12 flex items-center justify-center hover:bg-white bg-gray-100 rounded-2xl transition-all shadow-sm text-[#1E2330]" title="Copy URL">
-                            {copiedId === channel.id ? <CheckCircle2 size={20} className="text-green-600" /> : <Copy size={20} />}
-                          </button>
-                          <button onClick={() => setSelectedQR({ slug: channel.short_url, name: channel.name })} className="w-12 h-12 flex items-center justify-center hover:bg-white bg-gray-100 rounded-2xl transition-all shadow-sm text-[#1E2330]" title="Enlarge QR Code">
-                            <QrCode size={20} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteChannel(channel.id, channel.name)}
-                            disabled={channel.name === 'Direct'}
-                            className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all shadow-sm ${
-                              channel.name === 'Direct' 
-                                ? 'bg-gray-50 text-gray-300 cursor-not-allowed' 
-                                : 'hover:bg-red-500 hover:text-white bg-red-50 text-red-600'
-                            }`} 
-                            title={channel.name === 'Direct' ? "Cannot delete primary channel" : "Delete"}
-                          >
-                            <Trash2 size={20} />
-                          </button>
-                          <div className="hidden">
-                            <QRCodeSVG id={`qr-${channel.short_url}`} value={`${window.location.origin}/${channel.short_url}`} size={1024} level="H" includeMargin={true} />
+                        <td className="p-6 pr-10">
+                          <div className="flex gap-3 justify-end">
+                            <button onClick={() => copyToClipboard(channel.short_url, channel.id)} className="w-12 h-12 flex items-center justify-center hover:bg-white bg-gray-100 rounded-2xl transition-all shadow-sm text-[#1E2330]" title="Copy URL">
+                              {copiedId === channel.id ? <CheckCircle2 size={20} className="text-green-600" /> : <Copy size={20} />}
+                            </button>
+                            <button onClick={() => setSelectedQR({ slug: channel.short_url, name: channel.name })} className="w-12 h-12 flex items-center justify-center hover:bg-white bg-gray-100 rounded-2xl transition-all shadow-sm text-[#1E2330]" title="Enlarge QR Code">
+                              <QrCode size={20} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteChannel(channel.id, channel.name)}
+                              disabled={channel.name === 'Direct'}
+                              className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all shadow-sm ${
+                                channel.name === 'Direct' 
+                                  ? 'bg-gray-50 text-gray-300 cursor-not-allowed' 
+                                  : 'hover:bg-red-500 hover:text-white bg-red-50 text-red-600'
+                              }`} 
+                              title={channel.name === 'Direct' ? "Cannot delete primary channel" : "Delete"}
+                            >
+                              <Trash2 size={20} />
+                            </button>
+                            <div className="hidden">
+                              <QRCodeSVG id={`qr-${channel.short_url}`} value={`${window.location.origin}/${channel.short_url}`} size={1024} level="H" includeMargin={true} />
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
+
                 </tbody>
               </table>
             </div>
