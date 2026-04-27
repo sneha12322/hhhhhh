@@ -395,7 +395,7 @@ app.get("/api/audit/tables", async (req: any, res: any) => {
     // 1. Get Schema
     const schema = await database.prepare(`
       SELECT name, sql FROM sqlite_master 
-      WHERE type='table' AND name NOT IN ('otp_codes', 'users', 'sessions')
+      WHERE type='table' AND name NOT IN ('otp_codes', 'sessions')
     `).all();
 
     // 2. Get Sample Data
@@ -405,7 +405,8 @@ app.get("/api/audit/tables", async (req: any, res: any) => {
     // 3. Metadata
     const counts = {
       links: (await database.prepare("SELECT COUNT(*) as c FROM links").get()).c,
-      clicks: (await database.prepare("SELECT COUNT(*) as c FROM clicks").get()).c
+      clicks: (await database.prepare("SELECT COUNT(*) as c FROM clicks").get()).c,
+      users: (await database.prepare("SELECT COUNT(*) as c FROM users").get()).c
     };
 
     res.setHeader('Content-Type', 'application/json');
@@ -415,18 +416,20 @@ app.get("/api/audit/tables", async (req: any, res: any) => {
         compliance_status: "Active",
         database_engine: "Live.fyi Core Storage",
         overview: {
-          total_links: counts.links,
+          total_user_accounts: counts.users,
+          total_links_created: counts.links,
           total_traffic_logs: counts.clicks
         },
         data_structure: schema,
         sample_records: {
           links: linkSamples,
-          traffic_logs: clickSamples
+          traffic_logs: clickSamples,
+          users: "[REDACTED FOR PRIVACY - Samples available upon request]"
         },
         privacy_policy: [
+          "User emails are stored only for authentication purposes.",
           "IP addresses are used for geo-lookup and then discarded/hashed.",
-          "Original URLs are stored for redirection purposes.",
-          "No personal visitor data is stored in plaintext."
+          "Data is siloed per account using unique identifiers."
         ]
       }
     }, null, 2)); // Pretty-printed for terminal use
