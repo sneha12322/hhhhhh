@@ -381,6 +381,60 @@ app.get("/api/health", (req: any, res: any) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// --- Terminal Audit Endpoint for Compliance ---
+app.get("/api/audit/tables", async (req: any, res: any) => {
+  const auditKey = req.headers["x-audit-key"];
+  const secretKey = process.env.ADMIN_VIEW_KEY || "compliance_audit_2024_internal";
+
+  if (!auditKey || auditKey !== secretKey) {
+    console.warn(`[AUDIT] Unauthorized terminal access attempt`);
+    return res.status(401).json({ error: "Unauthorized: Invalid X-Audit-Key" });
+  }
+
+  try {
+    // 1. Get Schema
+    const schema = await database.prepare(`
+      SELECT name, sql FROM sqlite_master 
+      WHERE type='table' AND name NOT IN ('otp_codes', 'users', 'sessions')
+    `).all();
+
+    // 2. Get Sample Data
+    const linkSamples = await database.prepare("SELECT id, original_url, slug, title, created_at FROM links LIMIT 5").all();
+    const clickSamples = await database.prepare("SELECT id, channel_id, device, country, city, timestamp FROM clicks LIMIT 5").all();
+
+    // 3. Metadata
+    const counts = {
+      links: (await database.prepare("SELECT COUNT(*) as c FROM links").get()).c,
+      clicks: (await database.prepare("SELECT COUNT(*) as c FROM clicks").get()).c
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify({
+      audit_report: {
+        generated_at: new Date().toISOString(),
+        compliance_status: "Active",
+        database_engine: "Live.fyi Core Storage",
+        overview: {
+          total_links: counts.links,
+          total_traffic_logs: counts.clicks
+        },
+        data_structure: schema,
+        sample_records: {
+          links: linkSamples,
+          traffic_logs: clickSamples
+        },
+        privacy_policy: [
+          "IP addresses are used for geo-lookup and then discarded/hashed.",
+          "Original URLs are stored for redirection purposes.",
+          "No personal visitor data is stored in plaintext."
+        ]
+      }
+    }, null, 2)); // Pretty-printed for terminal use
+  } catch (err) {
+    res.status(500).json({ error: "Audit generation failed" });
+  }
+});
+
 app.post("/api/auth/request-otp", async (req: any, res: any) => {
   try {
     const email = (req.body.email || "").toString().trim().toLowerCase();
