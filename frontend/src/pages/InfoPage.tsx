@@ -62,6 +62,12 @@ const contentMap: Record<string, { title: string; body: string; icon: any; categ
     category: 'Company',
     icon: <RotateCcw className="text-amber-500" size={48} />,
     body: 'Since live.fyi is currently free to use, there are no charges or subscription fees, and therefore no refunds are applicable. If we introduce paid services in the future, we will provide a clear and fair refund policy. If you have any questions about your account or features, please contact our support team.',
+  },
+  'terms-conditions': {
+    title: 'Terms & Conditions',
+    category: 'Company',
+    icon: <Shield className="text-slate-500" size={48} />,
+    body: 'By using live.fyi, you agree to our terms of service. Our platform is designed for legitimate link shortening and analytics. You may not use live.fyi for any illegal activities, including but not limited to phishing, malware distribution, or spam. We reserve the right to disable any links that violate our safety policies or damage the reputation of our platform. Users are responsible for the content of the links they create.',
   }
 };
 
