@@ -239,6 +239,8 @@ export default function Landing() {
             <ul className="space-y-4 text-gray-400 text-sm">
               <li><Link to="/info/about" className="hover:text-white transition-colors">About</Link></li>
               <li><Link to="/info/careers" className="hover:text-white transition-colors">Careers</Link></li>
+              <li><Link to="/info/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+              <li><Link to="/info/refund-policy" className="hover:text-white transition-colors">Refund policy</Link></li>
               <li><Link to="/info/trust-legal" className="hover:text-white transition-colors">Trust & legal</Link></li>
               <li><Link to="/info/privacy-notice" className="hover:text-white transition-colors">Privacy notice</Link></li>
             </ul>

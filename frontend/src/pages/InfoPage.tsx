@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router';
 import { motion } from 'motion/react';
-import { ArrowLeft, BookOpen, Shield, Users, Zap, QrCode, Globe } from 'lucide-react';
+import { ArrowLeft, BookOpen, Shield, Users, Zap, QrCode, Globe, CreditCard, RotateCcw } from 'lucide-react';
 
 const contentMap: Record<string, { title: string; body: string; icon: any; category: string }> = {
   'what-does-a-short-link-do': {
@@ -50,6 +50,18 @@ const contentMap: Record<string, { title: string; body: string; icon: any; categ
     category: 'Company',
     icon: <Shield className="text-red-500" size={48} />,
     body: 'Your privacy is paramount at live.fyi. We only collect the data necessary to provide you with the best analytics and link management service possible. This includes basic information like click counts, device types, and approximate geographic locations. we never sell your personal data to third parties. We are committed to transparency and giving you control over your information.',
+  },
+  'pricing': {
+    title: 'Pricing Plans',
+    category: 'Company',
+    icon: <CreditCard className="text-emerald-500" size={48} />,
+    body: 'live.fyi is currently in a public beta phase. All features, including unlimited link shortening, real-time analytics, and custom QR codes, are available to all users for free. In the future, we may introduce premium plans for high-volume users and advanced enterprise features, but our core mission remains providing a high-quality free experience for everyone.',
+  },
+  'refund-policy': {
+    title: 'Refund Policy',
+    category: 'Company',
+    icon: <RotateCcw className="text-amber-500" size={48} />,
+    body: 'Since live.fyi is currently free to use, there are no charges or subscription fees, and therefore no refunds are applicable. If we introduce paid services in the future, we will provide a clear and fair refund policy. If you have any questions about your account or features, please contact our support team.',
   }
 };
 
