@@ -47,6 +47,7 @@ export default function LinkDetails() {
   const [tempTag, setTempTag] = useState('');
   const [selectedQR, setSelectedQR] = useState<{slug: string, name: string} | null>(null);
   const [geoView, setGeoView] = useState('map');
+  const [perfView, setPerfView] = useState('chart');
   const [hoveredCountry, setHoveredCountry] = useState<any>(null);
   const location = useLocation();
 
@@ -548,25 +549,51 @@ export default function LinkDetails() {
           <div className="flex flex-col gap-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-6 px-4">
               <h3 className="text-2xl font-black">Performance over time</h3>
-              <div className="flex bg-[#DDE0E2] p-1.5 rounded-2xl shadow-sm border border-black/5">
-                {[
-                  { id: '24h', label: '24h' },
-                  { id: '7d', label: '7d' },
-                  { id: '30d', label: '30d' },
-                  { id: '60d', label: '60d' }
-                ].map((tf) => (
-                  <button
-                    key={tf.id}
-                    onClick={() => handleTimeframeChange(tf.id)}
+              <div className="flex items-center gap-4">
+                {/* Performance View Toggle */}
+                <div className="flex bg-[#DDE0E2] p-1.5 rounded-2xl shadow-sm border border-black/5 mr-4">
+                  <button 
+                    onClick={() => setPerfView('chart')}
                     className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${
-                      timeframe === tf.id 
+                      perfView === 'chart' 
                         ? 'bg-[#1A1A1A] text-white shadow-lg' 
                         : 'text-[#1A1A1A]/40 hover:text-[#1A1A1A]'
                     }`}
                   >
-                    {tf.label}
+                    Chart
                   </button>
-                ))}
+                  <button 
+                    onClick={() => setPerfView('table')}
+                    className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${
+                      perfView === 'table' 
+                        ? 'bg-[#1A1A1A] text-white shadow-lg' 
+                        : 'text-[#1A1A1A]/40 hover:text-[#1A1A1A]'
+                    }`}
+                  >
+                    Table
+                  </button>
+                </div>
+
+                <div className="flex bg-[#DDE0E2] p-1.5 rounded-2xl shadow-sm border border-black/5">
+                  {[
+                    { id: '24h', label: '24h' },
+                    { id: '7d', label: '7d' },
+                    { id: '30d', label: '30d' },
+                    { id: '60d', label: '60d' }
+                  ].map((tf) => (
+                    <button
+                      key={tf.id}
+                      onClick={() => handleTimeframeChange(tf.id)}
+                      className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${
+                        timeframe === tf.id 
+                          ? 'bg-[#1A1A1A] text-white shadow-lg' 
+                          : 'text-[#1A1A1A]/40 hover:text-[#1A1A1A]'
+                      }`}
+                    >
+                      {tf.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             <motion.div 
@@ -574,102 +601,134 @@ export default function LinkDetails() {
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
               className="bg-[#DDE0E2] p-8 md:p-12 rounded-[3rem] shadow-sm border border-black/5 min-h-[450px]"
             >
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={(() => {
-                    const now = new Date();
-                    const dates = [];
-                    const rangeMap: Record<string, number> = { '24h': 24, '7d': 7, '30d': 30, '60d': 60 };
-                    const days = rangeMap[timeframe] || 7;
+              {perfView === 'chart' ? (
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={(() => {
+                      const now = new Date();
+                      const dates = [];
+                      const rangeMap: Record<string, number> = { '24h': 24, '7d': 7, '30d': 30, '60d': 60 };
+                      const days = rangeMap[timeframe] || 7;
 
-                    // 1. Create a map of existing click data for quick lookup
-                    const clickMap: Record<string, number> = {};
-                    analytics.timeline.forEach(p => {
-                      clickMap[p.date] = p.count;
-                    });
+                      // 1. Create a map of existing click data for quick lookup
+                      const clickMap: Record<string, number> = {};
+                      analytics.timeline.forEach(p => {
+                        clickMap[p.date] = p.count;
+                      });
 
-                    // 2. Generate the full range of points
-                    if (timeframe === '24h') {
-                      // Hourly points for the last 24 hours
-                      for(let i = 24; i >= 0; i--) {
-                        const d = new Date(now.getTime() - i * 3600000);
-                        // Format to match SQLite strftime('%Y-%m-%d %H') in UTC
-                        const year = d.getUTCFullYear();
-                        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-                        const day = String(d.getUTCDate()).padStart(2, '0');
-                        const hour = String(d.getUTCHours()).padStart(2, '0');
-                        const key = `${year}-${month}-${day} ${hour}`;
-                        
-                        // We store the original Date object or ISO for the formatter to use local time
-                        dates.push({ 
-                          date: d.toISOString(), 
-                          count: clickMap[key] || 0 
-                        });
+                      // 2. Generate the full range of points
+                      if (timeframe === '24h') {
+                        // Hourly points for the last 24 hours
+                        for(let i = 24; i >= 0; i--) {
+                          const d = new Date(now.getTime() - i * 3600000);
+                          // Format to match SQLite strftime('%Y-%m-%d %H') in UTC
+                          const year = d.getUTCFullYear();
+                          const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+                          const day = String(d.getUTCDate()).padStart(2, '0');
+                          const hour = String(d.getUTCHours()).padStart(2, '0');
+                          const key = `${year}-${month}-${day} ${hour}`;
+                          
+                          // We store the original Date object or ISO for the formatter to use local time
+                          dates.push({ 
+                            date: d.toISOString(), 
+                            count: clickMap[key] || 0 
+                          });
+                        }
+                      } else {
+                        // Daily points for the last X days
+                        for(let i = days; i >= 0; i--) {
+                          const d = new Date(now);
+                          d.setDate(d.getDate() - i);
+                          const dateStr = d.toISOString().split('T')[0];
+                          dates.push({ date: dateStr, count: clickMap[dateStr] || 0 });
+                        }
                       }
-                    } else {
-                      // Daily points for the last X days
-                      for(let i = days; i >= 0; i--) {
-                        const d = new Date(now);
-                        d.setDate(d.getDate() - i);
-                        const dateStr = d.toISOString().split('T')[0];
-                        dates.push({ date: dateStr, count: clickMap[dateStr] || 0 });
-                      }
-                    }
-                    return dates;
-                  })()}>
-                    <defs>
-                      <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#000000" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#000000" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="rgba(0,0,0,0.12)" />
-                    <XAxis 
-                      dataKey="date" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      minTickGap={timeframe === '24h' ? 0 : 60}
-                      tickFormatter={(str) => {
-                        const d = new Date(str);
-                        if (isNaN(d.getTime())) return str;
-                        if (timeframe === '24h') return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                      }}
-                      tick={{fill: '#000000', fontSize: 13, fontWeight: '700'}} 
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{fill: '#000000', fontSize: 13, fontWeight: '700'}} 
-                    />
-                    <Tooltip 
-                      content={({ active, payload: activePayload }) => {
-                        if (!active || !activePayload || !activePayload.length) return null;
-                        const d = new Date(activePayload[0].payload.date);
-                        return (
-                          <div className="bg-white p-5 rounded-2xl shadow-xl border border-gray-100 flex flex-col gap-1 ring-1 ring-black/5">
-                            <p className="text-gray-400 font-black text-[10px] uppercase tracking-widest">
-                              {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </p>
-                            <p className="text-[#1E2330] font-black text-lg">
-                              {timeframe === '24h' 
-                                ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-                                : 'Daily Total'}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="w-2 h-2 rounded-full bg-[#1E2330]"></span>
-                              <p className="font-black text-xl text-[#1E2330]">
-                                {activePayload[0].value} <span className="text-sm text-gray-400 uppercase">clicks</span>
+                      return dates;
+                    })()}>
+                      <defs>
+                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#000000" stopOpacity={0.15}/>
+                          <stop offset="95%" stopColor="#000000" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="rgba(0,0,0,0.12)" />
+                      <XAxis 
+                        dataKey="date" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        minTickGap={timeframe === '24h' ? 0 : 60}
+                        tickFormatter={(str) => {
+                          const d = new Date(str);
+                          if (isNaN(d.getTime())) return str;
+                          if (timeframe === '24h') return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                          return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        }}
+                        tick={{fill: '#000000', fontSize: 13, fontWeight: '700'}} 
+                      />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{fill: '#000000', fontSize: 13, fontWeight: '700'}} 
+                      />
+                      <Tooltip 
+                        content={({ active, payload: activePayload }) => {
+                          if (!active || !activePayload || !activePayload.length) return null;
+                          const d = new Date(activePayload[0].payload.date);
+                          return (
+                            <div className="bg-white p-5 rounded-2xl shadow-xl border border-gray-100 flex flex-col gap-1 ring-1 ring-black/5">
+                              <p className="text-gray-400 font-black text-[10px] uppercase tracking-widest">
+                                {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                               </p>
+                              <p className="text-[#1E2330] font-black text-lg">
+                                {timeframe === '24h' 
+                                  ? d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                                  : 'Daily Total'}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="w-2 h-2 rounded-full bg-[#1E2330]"></span>
+                                <p className="font-black text-xl text-[#1E2330]">
+                                  {activePayload[0].value} <span className="text-sm text-gray-400 uppercase">clicks</span>
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      }}
-                    />
-                    <Area type="monotone" dataKey="count" stroke="#000000" strokeWidth={4} fillOpacity={1} fill="url(#colorCount)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+                          );
+                        }}
+                      />
+                      <Area type="monotone" dataKey="count" stroke="#000000" strokeWidth={4} fillOpacity={1} fill="url(#colorCount)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-full overflow-y-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="text-[#1A1A1A] text-xl font-bold tracking-tight sticky top-0 bg-[#DDE0E2] z-20">
+                      <tr>
+                        <th className="pb-8 border-b-3 border-black">Time Period</th>
+                        <th className="pb-8 text-right border-b-3 border-black">Total Clicks</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y-0">
+                      <tr className="h-4"><td></td><td></td></tr>
+                      {analytics.timeline.slice().reverse().map((p, i) => (
+                        <tr key={i} className="group/row">
+                          <td className="py-5 font-bold text-[#1A1A1A] opacity-90">
+                            {(() => {
+                              const d = new Date(p.date);
+                              if (isNaN(d.getTime())) return p.date;
+                              return timeframe === '24h' 
+                                ? d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                                : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                            })()}
+                          </td>
+                          <td className="py-5 text-right font-black text-[#1A1A1A]">
+                            {p.count}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </motion.div>
           </div>
 
@@ -746,25 +805,28 @@ export default function LinkDetails() {
               <span className="flex-1"></span>
               <h3 className="text-xl font-bold tracking-tight text-center">By country</h3>
               <div className="flex-1 flex justify-end">
-                {/* Custom View Toggle Dropdown */}
-                <div className="relative group/dropdown">
-                  <button className="bg-white border-2 border-gray-100 text-sm font-black rounded-2xl px-6 py-2.5 flex items-center gap-3 hover:border-gray-200 transition-all shadow-sm shrink-0">
-                    {geoView === 'map' ? 'Map' : 'Table'} <ChevronDown size={14} className="text-gray-400" />
+                {/* Visible View Toggle */}
+                <div className="flex bg-[#DDE0E2] p-1.5 rounded-2xl shadow-sm border border-black/5">
+                  <button 
+                    onClick={() => setGeoView('map')}
+                    className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${
+                      geoView === 'map' 
+                        ? 'bg-[#1A1A1A] text-white shadow-lg' 
+                        : 'text-[#1A1A1A]/40 hover:text-[#1A1A1A]'
+                    }`}
+                  >
+                    Map
                   </button>
-                  <div className="absolute right-0 top-full mt-2 w-32 bg-white border border-gray-100 rounded-2xl shadow-xl p-2 opacity-0 invisible group-hover/dropdown:opacity-100 group-hover/dropdown:visible transition-all z-[60]">
-                    <button 
-                      onClick={() => setGeoView('map')}
-                      className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${geoView === 'map' ? 'bg-gray-100 text-[#1E2330]' : 'text-gray-400 hover:bg-gray-50'}`}
-                    >
-                      Map
-                    </button>
-                    <button 
-                      onClick={() => setGeoView('table')}
-                      className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${geoView === 'table' ? 'bg-gray-100 text-[#1E2330]' : 'text-gray-400 hover:bg-gray-50'}`}
-                    >
-                      Table
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => setGeoView('table')}
+                    className={`px-6 py-2 rounded-xl text-sm font-black transition-all ${
+                      geoView === 'table' 
+                        ? 'bg-[#1A1A1A] text-white shadow-lg' 
+                        : 'text-[#1A1A1A]/40 hover:text-[#1A1A1A]'
+                    }`}
+                  >
+                    Table
+                  </button>
                 </div>
               </div>
             </div>
@@ -1041,7 +1103,14 @@ function BehaviorCard({ data, dataKey, columns, emptyMsg = "Nothing yet. Have yo
                 {data.map((item, i) => (
                   <tr key={i} className="group/row">
                     <td className="py-5 font-bold text-[#1A1A1A] group-hover/row:opacity-100 opacity-90 transition-opacity">
-                      {item[dataKey] || 'Direct'}
+                      {dataKey === 'country' && item[dataKey] && item[dataKey] !== 'Unknown' ? (() => {
+                        try {
+                          const regionNames = new Intl.DisplayNames(['en'], {type: 'region'});
+                          return regionNames.of(item[dataKey]) || item[dataKey];
+                        } catch (e) {
+                          return item[dataKey];
+                        }
+                      })() : (item[dataKey] || 'Direct')}
                     </td>
                     <td className="py-5 text-right font-black text-[#1A1A1A]">
                       {item.count ?? item.clicks ?? 0}
@@ -1199,13 +1268,22 @@ const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 function InteractiveMap({ data, onHover }: { data: any[], onHover: (d: any) => void }) {
   const statsMap = data.reduce((acc, curr) => {
+    if (!curr.country || curr.country === 'Unknown') return acc;
+    
     try {
-      // Convert 'IN' -> 'India' for map matching
       const regionNames = new Intl.DisplayNames(['en'], {type: 'region'});
-      const fullName = curr.country === 'Unknown' ? 'Unknown' : regionNames.of(curr.country);
-      if (fullName) acc[fullName] = curr.count;
+      const fullName = regionNames.of(curr.country);
+      if (fullName) {
+        acc[fullName.toLowerCase()] = curr.count;
+        
+        // Add common variants for map matching
+        if (fullName === 'United States') acc['united states of america'] = curr.count;
+        if (fullName === 'United Kingdom') acc['united kingdom'] = curr.count;
+        if (fullName === 'Vietnam') acc['viet nam'] = curr.count;
+        if (fullName === 'Russia') acc['russian federation'] = curr.count;
+      }
     } catch (e) {
-      acc[curr.country] = curr.count;
+      acc[curr.country.toLowerCase()] = curr.count;
     }
     return acc;
   }, {} as Record<string, number>);
@@ -1227,7 +1305,8 @@ function InteractiveMap({ data, onHover }: { data: any[], onHover: (d: any) => v
             geographies
               .filter(geo => geo.properties?.name !== "Antarctica")
               .map((geo) => {
-                const count = statsMap[geo.id] || statsMap[geo.properties?.name] || 0;
+                const name = geo.properties?.name?.toLowerCase();
+                const count = statsMap[name] || 0;
                 return (
                   <Geography
                     key={geo.rsmKey}
